@@ -1,476 +1,347 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Search, Store, User, Menu, MessageCircle,
-  ChevronRight, Star, Monitor, Laptop, 
-  Cpu, Headphones, ShieldCheck, Truck,
-  ArrowRight, Sparkles, MessageSquare
-} from 'lucide-react';
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Katalog Smart Technology Mandiri</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- FontAwesome untuk Ikon -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- React & Babel -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-// --- MOCK DATA ---
-const BRANDS = ['ASUS', 'ACER', 'LENOVO', 'HP', 'APPLE', 'MSI', 'LOGITECH', 'RAZER'];
+  <style>
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+    .shimmer { animation: shimmer 2s infinite linear; }
+    @keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+  </style>
+</head>
+<body class="bg-[#F4F7FB] selection:bg-cyan-400 selection:text-[#002345]">
+  <div id="root"></div>
 
-const PRODUCTS = [
-  {
-    id: 1,
-    name: 'ASUS ROG Zephyrus G14 (2024) - Ryzen 9, RTX 4060',
-    price: 25999000,
-    originalPrice: 28999000,
-    category: 'Laptop',
-    brand: 'ASUS',
-    image: 'https://placehold.co/400x300/ffffff/002345?text=ASUS+ROG',
-    rating: 4.9,
-    sold: 142,
-    badge: 'Save 10%'
-  },
-  {
-    id: 2,
-    name: 'Lenovo Legion Pro 5i - Intel i7 Gen 13, RTX 4070',
-    price: 28500000,
-    originalPrice: 30000000,
-    category: 'Laptop',
-    brand: 'LENOVO',
-    image: 'https://placehold.co/400x300/ffffff/002345?text=Lenovo+Legion',
-    rating: 4.8,
-    sold: 89,
-    badge: 'Best Seller'
-  },
-  {
-    id: 3,
-    name: 'MacBook Air M2 13-inch 8GB/256GB - Midnight',
-    price: 17499000,
-    originalPrice: 18999000,
-    category: 'Laptop',
-    brand: 'APPLE',
-    image: 'https://placehold.co/400x300/ffffff/002345?text=MacBook+Air',
-    rating: 5.0,
-    sold: 350,
-    badge: 'Promo'
-  },
-  {
-    id: 4,
-    name: 'Logitech G Pro X Superlight Wireless Gaming Mouse',
-    price: 1850000,
-    originalPrice: 2100000,
-    category: 'Aksesoris',
-    brand: 'LOGITECH',
-    image: 'https://placehold.co/400x300/ffffff/002345?text=Logitech+G+Pro',
-    rating: 4.9,
-    sold: 520,
-    badge: ''
-  },
-  {
-    id: 5,
-    name: 'Monitor Gaming Acer Nitro 24" 165Hz IPS Panel',
-    price: 2100000,
-    originalPrice: 2500000,
-    category: 'Monitor',
-    brand: 'ACER',
-    image: 'https://placehold.co/400x300/ffffff/002345?text=Acer+Nitro',
-    rating: 4.7,
-    sold: 215,
-    badge: 'Hot Item'
-  },
-  {
-    id: 6,
-    name: 'HP Victus 15 - Ryzen 5 7535HS, RTX 2050',
-    price: 10999000,
-    originalPrice: 12500000,
-    category: 'Laptop',
-    brand: 'HP',
-    image: 'https://placehold.co/400x300/ffffff/002345?text=HP+Victus',
-    rating: 4.6,
-    sold: 110,
-    badge: 'Save 12%'
-  },
-  {
-    id: 7,
-    name: 'MSI Katana 15 - i7 12650H, RTX 4050',
-    price: 15499000,
-    originalPrice: 16999000,
-    category: 'Laptop',
-    brand: 'MSI',
-    image: 'https://placehold.co/400x300/ffffff/002345?text=MSI+Katana',
-    rating: 4.8,
-    sold: 76,
-    badge: ''
-  },
-  {
-    id: 8,
-    name: 'Keyboard Mechanical Keychron K2 V2 Wireless',
-    price: 1450000,
-    originalPrice: 1600000,
-    category: 'Aksesoris',
-    brand: 'KEYCHRON',
-    image: 'https://placehold.co/400x300/ffffff/002345?text=Keychron+K2',
-    rating: 4.9,
-    sold: 430,
-    badge: 'Popular'
-  }
-];
+  <script type="text/babel">
+    const { useState, useEffect } = React;
 
-// --- FORMATTER ---
-const formatRupiah = (number) => {
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(number);
-};
+    // --- DATA PRODUK LENGKAP ---
+    const BRANDS = ['ASUS', 'ACER', 'LENOVO', 'HP', 'APPLE', 'MSI', 'LOGITECH', 'RAZER'];
+    
+    const PRODUCTS = [
+      { id: 1, name: 'ASUS ROG Zephyrus G14 (2024) - Ryzen 9, RTX 4060', price: 25999000, originalPrice: 28999000, category: 'Laptop', brand: 'ASUS', image: 'https://placehold.co/400x300/ffffff/002345?text=ASUS+ROG', rating: 4.9, badge: 'Save 10%' },
+      { id: 2, name: 'Lenovo Legion Pro 5i - Intel i7 Gen 13, RTX 4070', price: 28500000, originalPrice: 30000000, category: 'Laptop', brand: 'LENOVO', image: 'https://placehold.co/400x300/ffffff/002345?text=Lenovo+Legion', rating: 4.8, badge: 'Best Seller' },
+      { id: 3, name: 'MacBook Air M2 13-inch 8GB/256GB - Midnight', price: 17499000, originalPrice: 18999000, category: 'Laptop', brand: 'APPLE', image: 'https://placehold.co/400x300/ffffff/002345?text=MacBook+Air', rating: 5.0, badge: 'Promo' },
+      { id: 4, name: 'Logitech G Pro X Superlight Wireless Gaming Mouse', price: 1850000, originalPrice: 2100000, category: 'Aksesoris', brand: 'LOGITECH', image: 'https://placehold.co/400x300/ffffff/002345?text=Logitech+G+Pro', rating: 4.9, badge: '' },
+      { id: 5, name: 'Monitor Gaming Acer Nitro 24" 165Hz IPS Panel', price: 2100000, originalPrice: 2500000, category: 'Monitor', brand: 'ACER', image: 'https://placehold.co/400x300/ffffff/002345?text=Acer+Nitro', rating: 4.7, badge: 'Hot Item' },
+      { id: 6, name: 'HP Victus 15 - Ryzen 5 7535HS, RTX 2050', price: 10999000, originalPrice: 12500000, category: 'Laptop', brand: 'HP', image: 'https://placehold.co/400x300/ffffff/002345?text=HP+Victus', rating: 4.6, badge: 'Save 12%' },
+      { id: 7, name: 'MSI Katana 15 - i7 12650H, RTX 4050', price: 15499000, originalPrice: 16999000, category: 'Laptop', brand: 'MSI', image: 'https://placehold.co/400x300/ffffff/002345?text=MSI+Katana', rating: 4.8, badge: '' },
+      { id: 8, name: 'Keyboard Mechanical Keychron K2 V2 Wireless', price: 1450000, originalPrice: 1600000, category: 'Aksesoris', brand: 'KEYCHRON', image: 'https://placehold.co/400x300/ffffff/002345?text=Keychron+K2', rating: 4.9, badge: 'Popular' }
+    ];
 
-export default function AgresCloneApp() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeCategory, setActiveCategory] = useState('Semua');
-  const [scrolled, setScrolled] = useState(false);
-  const [placeholderIndex, setPlaceholderIndex] = useState(0);
-
-  const categories = ['Semua', 'Laptop', 'Monitor', 'Aksesoris', 'Komponen PC'];
-  const placeholders = [
-    "Cari Laptop Gaming...", 
-    "Cari Monitor 144Hz...", 
-    "Cari Mouse Wireless...", 
-    "Cari RTX 4060..."
-  ];
-
-  // Efek pengetikan placeholder animasi
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setPlaceholderIndex((prev) => (prev + 1) % placeholders.length);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Efek scroll untuk glass header
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
+    const formatRupiah = (number) => {
+      return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number);
     };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
-  const filteredProducts = PRODUCTS.filter(product => {
-    const matchesCategory = activeCategory === 'Semua' || product.category === activeCategory;
-    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+    function App() {
+      const [searchQuery, setSearchQuery] = useState('');
+      const [activeCategory, setActiveCategory] = useState('Semua');
+      const [scrolled, setScrolled] = useState(false);
+      const [placeholderIndex, setPlaceholderIndex] = useState(0);
 
-  return (
-    <div className="min-h-screen bg-[#F4F7FB] font-sans text-gray-800 selection:bg-cyan-400 selection:text-[#002345]">
-      
-      {/* FLOATING CHAT BUTTON */}
-      <button className="fixed bottom-6 right-6 z-50 bg-cyan-500 text-[#002345] p-4 rounded-full shadow-[0_8px_30px_rgb(0,243,255,0.4)] hover:bg-cyan-400 hover:scale-110 transition-all duration-300 group">
-        <MessageSquare className="w-6 h-6 animate-pulse" />
-        {/* Tooltip */}
-        <span className="absolute right-full mr-4 top-1/2 -translate-y-1/2 bg-[#002345] text-white text-xs px-3 py-2 rounded-xl whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none shadow-xl">
-          Tanya Sales Kami
-        </span>
-      </button>
+      const categories = ['Semua', 'Laptop', 'Monitor', 'Aksesoris', 'Komponen PC'];
+      const placeholders = ["Cari Laptop Gaming...", "Cari Monitor 144Hz...", "Cari Mouse Wireless...", "Cari RTX 4060..."];
 
-      {/* TOP HEADER (Promo Bar) */}
-      <div className="bg-gradient-to-r from-[#001122] via-[#002345] to-[#001122] text-cyan-400 text-xs py-2 px-4 flex justify-center border-b border-cyan-500/10 tracking-wide relative overflow-hidden">
-        <div className="absolute inset-0 bg-white/5 opacity-50 shimmer"></div>
-        <span className="font-bold tracking-widest relative z-10 flex items-center gap-2">
-          <Sparkles className="w-3 h-3 text-yellow-400" /> KATALOG PRODUK RESMI BERGARANSI
-        </span>
-      </div>
+      useEffect(() => {
+        const interval = setInterval(() => {
+          setPlaceholderIndex((prev) => (prev + 1) % placeholders.length);
+        }, 3000);
+        return () => clearInterval(interval);
+      }, []);
 
-      {/* MAIN HEADER (Sticky & Glassmorphism) */}
-      <header className={`sticky top-0 z-40 transition-all duration-300 ${scrolled ? 'bg-[#002345]/90 backdrop-blur-lg shadow-lg py-2' : 'bg-[#002345] py-4'} border-b border-white/5`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between gap-6">
-            
-            {/* Logo */}
-            <div className="flex items-center gap-3 cursor-pointer group">
-              <Menu className="sm:hidden w-6 h-6 text-cyan-400" />
-              <img 
-                src="https://drive.google.com/thumbnail?id=1WLxFwy421QxxzZ4vfwfozlWSUT1qMZgr&sz=w800" 
-                alt="SMART TECHNOLOGY MANDIRI" 
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src = 'https://placehold.co/400x100/002345/00f3ff?text=SMART+TECH';
-                }}
-                className="h-10 sm:h-12 object-contain group-hover:scale-105 transition-transform duration-300 drop-shadow-[0_0_8px_rgba(0,243,255,0.5)]"
-              />
-            </div>
+      useEffect(() => {
+        const handleScroll = () => setScrolled(window.scrollY > 20);
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+      }, []);
 
-            {/* Search Bar - Interactive */}
-            <div className="flex-1 max-w-2xl hidden sm:flex">
-              <div className="relative w-full group">
-                <input 
-                  type="text" 
-                  placeholder={placeholders[placeholderIndex]} 
-                  className="w-full bg-[#001830]/80 text-white placeholder-slate-400/70 border border-[#003366] rounded-full py-3 pl-6 pr-14 focus:outline-none focus:border-cyan-400 focus:bg-[#001a33] focus:ring-4 focus:ring-cyan-500/20 transition-all duration-300"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-                <button className="absolute right-2 top-2 bottom-2 bg-gradient-to-r from-cyan-500 to-cyan-400 text-[#002345] px-4 rounded-full hover:shadow-[0_0_15px_rgba(0,243,255,0.4)] hover:scale-105 transition-all duration-300 flex items-center justify-center">
-                  <Search className="w-4 h-4 font-bold" />
-                </button>
-              </div>
-            </div>
+      const filteredProducts = PRODUCTS.filter(product => {
+        const matchesCategory = activeCategory === 'Semua' || product.category === activeCategory;
+        const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
+        return matchesCategory && matchesSearch;
+      });
 
-            {/* Icons */}
-            <div className="flex items-center gap-6">
-              <button className="flex flex-col items-center hover:text-cyan-400 transition-colors group">
-                <div className="p-2 bg-white/5 rounded-full group-hover:bg-cyan-500/10 transition-colors">
-                  <User className="w-5 h-5 text-white group-hover:text-cyan-400" />
-                </div>
-                <span className="text-[10px] tracking-wider uppercase hidden sm:block mt-1 text-slate-300 group-hover:text-cyan-400">Admin</span>
-              </button>
-            </div>
-
-          </div>
-        </div>
-
-        {/* Categories Nav (Desktop) - Animated slide down */}
-        <div className={`hidden md:block overflow-hidden transition-all duration-300 ${scrolled ? 'h-0 opacity-0' : 'h-12 opacity-100'}`}>
-          <div className="max-w-7xl mx-auto px-8 flex items-center gap-8 py-3 text-xs font-semibold tracking-wider uppercase">
-            <button className="flex items-center gap-2 text-cyan-400 hover:text-white transition-colors">
-              <Menu className="w-4 h-4" /> Kategori Produk
-            </button>
-            <div className="w-px h-4 bg-[#003366]"></div>
-            {categories.slice(1).map(cat => (
-              <button key={cat} className="text-slate-300 hover:text-cyan-400 transition-colors relative group">
-                {cat}
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-cyan-400 group-hover:w-full transition-all duration-300"></span>
-              </button>
-            ))}
-            <button className="bg-white/10 px-4 py-1.5 rounded-full text-cyan-400 hover:bg-white/20 transition-colors ml-auto flex items-center gap-2">
-              Promo Hari Ini <ChevronRight className="w-3 h-3" />
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {/* MOBILE SEARCH */}
-      <div className="bg-[#002345] p-4 sm:hidden border-b border-white/5 shadow-md">
-        <div className="relative w-full">
-          <input 
-            type="text" 
-            placeholder="Cari produk..." 
-            className="w-full bg-[#001830] text-white border border-[#003366] rounded-full py-2.5 pl-5 pr-12 text-sm focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/20"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          <Search className="absolute right-4 top-3 w-4 h-4 text-cyan-400" />
-        </div>
-      </div>
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12">
-        
-        {/* HERO BANNER - Soft & Animated */}
-        <section className="relative rounded-3xl overflow-hidden shadow-[0_20px_50px_-12px_rgba(0,35,69,0.3)] h-56 sm:h-[400px] w-full flex items-center justify-center bg-gradient-to-br from-[#001122] via-[#002345] to-[#001830] text-white group cursor-pointer">
-          {/* Animated Glowing Orbs */}
-          <div className="absolute top-0 left-1/4 w-64 h-64 bg-cyan-500/20 rounded-full blur-[80px] mix-blend-screen group-hover:scale-150 transition-transform duration-1000"></div>
-          <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-blue-600/20 rounded-full blur-[80px] mix-blend-screen group-hover:scale-150 transition-transform duration-1000 delay-100"></div>
+      return (
+        <div className="font-sans text-gray-800 relative">
           
-          <div className="relative z-10 text-center px-6 flex flex-col items-center">
-            <div className="inline-block border border-cyan-500/30 text-cyan-400 text-xs px-4 py-1.5 mb-6 rounded-full tracking-widest uppercase bg-white/5 backdrop-blur-md shadow-lg">
-              Katalog Eksklusif 2026
-            </div>
-            <h1 className="text-4xl sm:text-7xl font-black mb-4 tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-400 drop-shadow-sm">
-              SUPER GAMING WEEK
-            </h1>
-            <p className="text-sm sm:text-xl text-cyan-200/80 font-light mb-8 tracking-wide max-w-xl">
-              Tingkatkan pengalaman digital Anda dengan teknologi masa depan yang tersedia hari ini.
-            </p>
-            <button className="bg-cyan-500 text-[#002345] hover:bg-cyan-400 font-bold py-3 px-8 rounded-full transition-all duration-300 shadow-[0_0_20px_rgba(0,243,255,0.3)] hover:shadow-[0_0_30px_rgba(0,243,255,0.5)] flex items-center gap-2 group-hover:gap-4 uppercase tracking-widest text-sm">
-              Eksplorasi Sekarang <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
-        </section>
+          {/* FLOATING CHAT BUTTON */}
+          <button className="fixed bottom-6 right-6 z-50 bg-cyan-500 text-[#002345] p-4 rounded-full shadow-[0_8px_30px_rgb(0,243,255,0.4)] hover:bg-cyan-400 hover:scale-110 transition-all duration-300 group flex items-center justify-center w-14 h-14">
+            <i className="fas fa-comment-dots text-2xl animate-pulse"></i>
+            <span className="absolute right-full mr-4 top-1/2 -translate-y-1/2 bg-[#002345] text-white text-xs px-3 py-2 rounded-xl whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none shadow-xl">
+              Tanya Sales Kami
+            </span>
+          </button>
 
-        {/* FEATURES - Smooth Cards */}
-        <section className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
-          {[
-            { icon: ShieldCheck, title: 'Garansi Resmi', desc: '100% Original' },
-            { icon: Truck, title: 'Gratis Ongkir', desc: 'Aman & Cepat' },
-            { icon: Monitor, title: 'Toko Offline', desc: 'Seluruh Indonesia' },
-            { icon: Headphones, title: 'Layanan 24/7', desc: 'Teknisi Handal' },
-          ].map((feat, i) => (
-            <div key={i} className="bg-white p-6 rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-4 border border-slate-100 group cursor-default">
-              <div className="bg-slate-50 text-[#002345] p-4 rounded-full group-hover:bg-cyan-500 group-hover:text-[#002345] group-hover:shadow-[0_0_15px_rgba(0,243,255,0.3)] transition-all duration-300">
-                <feat.icon className="w-6 h-6" />
-              </div>
-              <div>
-                <h3 className="font-bold text-sm text-[#002345] tracking-wide uppercase mb-1">{feat.title}</h3>
-                <p className="text-xs text-slate-500">{feat.desc}</p>
-              </div>
-            </div>
-          ))}
-        </section>
-
-        {/* PRODUCT SECTION */}
-        <section>
-          <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-6">
-            <h2 className="text-2xl sm:text-3xl font-black text-[#002345] flex items-center gap-3 tracking-tight">
-              <Cpu className="text-cyan-500 w-8 h-8 drop-shadow-sm" />
-              KATALOG <span className="text-slate-400 font-light">PRODUK</span>
-            </h2>
-
-            {/* Category Filter Pills - Interactive */}
-            <div className="flex gap-3 overflow-x-auto pb-2 sm:pb-0 scrollbar-hide">
-              {categories.map(cat => (
-                <button 
-                  key={cat}
-                  onClick={() => setActiveCategory(cat)}
-                  className={`px-6 py-2.5 rounded-full text-xs font-bold tracking-wider uppercase whitespace-nowrap transition-all duration-300 ${
-                    activeCategory === cat 
-                      ? 'bg-[#002345] text-cyan-400 shadow-[0_4px_15px_rgba(0,35,69,0.2)] scale-105' 
-                      : 'bg-white text-slate-500 border border-slate-200 hover:border-cyan-400 hover:text-[#002345]'
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
+          {/* TOP HEADER */}
+          <div className="bg-gradient-to-r from-[#001122] via-[#002345] to-[#001122] text-cyan-400 text-xs py-2 px-4 flex justify-center border-b border-cyan-500/10 tracking-wide relative overflow-hidden">
+            <div className="absolute inset-0 bg-white/5 opacity-50 shimmer"></div>
+            <span className="font-bold tracking-widest relative z-10 flex items-center gap-2">
+              <i className="fas fa-bolt text-yellow-400"></i> KATALOG PRODUK RESMI BERGARANSI
+            </span>
           </div>
 
-          {/* Product Grid */}
-          {filteredProducts.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-8">
-              {filteredProducts.map((product) => (
-                <div key={product.id} className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-[0_15px_40px_-10px_rgba(0,243,255,0.2)] hover:-translate-y-2 hover:border-cyan-200 transition-all duration-500 group flex flex-col h-full relative cursor-pointer">
-                  
-                  {/* Image Container - Smooth Zoom */}
-                  <div className="relative aspect-[4/3] overflow-hidden bg-slate-50 p-6 flex items-center justify-center">
-                    {product.badge && (
-                      <span className="absolute top-4 left-4 bg-gradient-to-r from-[#002345] to-[#003366] text-cyan-400 text-[10px] font-bold px-3 py-1.5 rounded-full z-10 uppercase tracking-widest shadow-md">
-                        {product.badge}
-                      </span>
-                    )}
-                    
-                    {/* Quick Action Overlay on Hover */}
-                    <div className="absolute inset-0 bg-[#002345]/5 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 flex items-center justify-center">
-                      <button className="bg-white/90 text-[#002345] px-4 py-2 rounded-full font-bold text-xs uppercase tracking-widest shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-all duration-300 hover:bg-cyan-400">
-                        Lihat Detail
-                      </button>
-                    </div>
+          {/* MAIN HEADER (Sticky & Glass) */}
+          <header className={`sticky top-0 z-40 transition-all duration-300 ${scrolled ? 'bg-[#002345]/90 backdrop-blur-lg shadow-lg py-2' : 'bg-[#002345] py-4'} border-b border-white/5`}>
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex items-center justify-between gap-6">
+                
+                {/* Logo */}
+                <div className="flex items-center gap-3 cursor-pointer group">
+                  <i className="fas fa-bars sm:hidden text-cyan-400 text-xl"></i>
+                  <img 
+                    src="https://drive.google.com/thumbnail?id=1WLxFwy421QxxzZ4vfwfozlWSUT1qMZgr&sz=w800" 
+                    alt="SMART TECHNOLOGY MANDIRI" 
+                    onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/400x100/002345/00f3ff?text=SMART+TECH'; }}
+                    className="h-10 sm:h-12 object-contain group-hover:scale-105 transition-transform duration-300 drop-shadow-[0_0_8px_rgba(0,243,255,0.5)]"
+                  />
+                </div>
 
-                    <img 
-                      src={product.image} 
-                      alt={product.name}
-                      className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-700 ease-out"
+                {/* Search Bar */}
+                <div className="flex-1 max-w-2xl hidden sm:flex">
+                  <div className="relative w-full group">
+                    <input 
+                      type="text" 
+                      placeholder={placeholders[placeholderIndex]} 
+                      className="w-full bg-[#001830]/80 text-white placeholder-slate-400/70 border border-[#003366] rounded-full py-3 pl-6 pr-14 focus:outline-none focus:border-cyan-400 focus:bg-[#001a33] focus:ring-4 focus:ring-cyan-500/20 transition-all duration-300"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
                     />
+                    <button className="absolute right-2 top-2 bottom-2 bg-gradient-to-r from-cyan-500 to-cyan-400 text-[#002345] w-10 rounded-full hover:shadow-[0_0_15px_rgba(0,243,255,0.4)] hover:scale-105 transition-all duration-300 flex items-center justify-center">
+                      <i className="fas fa-search"></i>
+                    </button>
                   </div>
-
-                  {/* Product Details */}
-                  <div className="p-6 flex flex-col flex-grow bg-white z-20">
-                    <div className="text-[10px] text-cyan-600 tracking-widest uppercase mb-2 font-bold bg-cyan-50 inline-block px-2 py-1 rounded w-fit">{product.brand}</div>
-                    <h3 className="font-semibold text-[15px] text-[#002345] line-clamp-2 mb-4 group-hover:text-cyan-600 transition-colors leading-relaxed">
-                      {product.name}
-                    </h3>
-                    
-                    {/* Pricing */}
-                    <div className="mt-auto pt-4">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs text-slate-400 line-through">
-                          {formatRupiah(product.originalPrice)}
-                        </span>
-                      </div>
-                      <div className="text-xl font-black text-[#002345] mb-4 tracking-tight group-hover:scale-105 origin-left transition-transform duration-300">
-                        {formatRupiah(product.price)}
-                      </div>
-
-                      {/* Action Button - Interactive Hover */}
-                      <button 
-                        className="w-full py-3 px-4 bg-slate-50 text-[#002345] border border-slate-200 text-xs font-bold uppercase tracking-widest rounded-xl group-hover:bg-[#002345] group-hover:border-[#002345] group-hover:text-cyan-400 transition-all duration-300 flex items-center justify-center gap-2 overflow-hidden relative"
-                      >
-                        <span className="relative z-10 flex items-center gap-2">
-                          <MessageCircle className="w-4 h-4" />
-                          <span>Tanya Stok</span>
-                        </span>
-                        {/* Swipe effect background */}
-                        <div className="absolute inset-0 bg-[#002345] translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out"></div>
-                      </button>
-                    </div>
-                  </div>
-
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-24 bg-white rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center">
-              <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mb-6">
-                <Monitor className="w-10 h-10 text-slate-300" />
+
+                {/* Icons */}
+                <div className="flex items-center gap-6">
+                  <button className="flex flex-col items-center hover:text-cyan-400 transition-colors group">
+                    <div className="p-2 bg-white/5 rounded-full group-hover:bg-cyan-500/10 transition-colors w-9 h-9 flex items-center justify-center">
+                      <i className="fas fa-user-shield text-white group-hover:text-cyan-400"></i>
+                    </div>
+                    <span className="text-[10px] tracking-wider uppercase hidden sm:block mt-1 text-slate-300 group-hover:text-cyan-400">Admin</span>
+                  </button>
+                </div>
+
               </div>
-              <h3 className="text-xl font-bold text-[#002345] tracking-wide uppercase">Produk tidak ditemukan</h3>
-              <p className="text-slate-400 mt-2 max-w-md">Katalog kami terus diperbarui. Coba sesuaikan filter atau gunakan kata kunci pencarian yang berbeda.</p>
-            </div>
-          )}
-        </section>
-
-      </main>
-
-      {/* FOOTER */}
-      <footer className="bg-[#001122] text-slate-400 border-t border-cyan-500/10 pt-20 pb-8 mt-20 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-900/10 rounded-full blur-[100px] pointer-events-none"></div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
-            <div className="col-span-1 md:col-span-1">
-              <img 
-                src="https://drive.google.com/thumbnail?id=1WLxFwy421QxxzZ4vfwfozlWSUT1qMZgr&sz=w800" 
-                alt="SMART TECHNOLOGY MANDIRI" 
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src = 'https://placehold.co/400x100/001122/ffffff?text=SMART+TECH';
-                }}
-                className="h-12 object-contain mb-6 drop-shadow-md brightness-0 invert opacity-90"
-              />
-              <p className="text-sm text-slate-500 leading-relaxed mb-6 font-light">
-                Pusat informasi dan katalog pintar produk IT. Temukan inspirasi teknologi terbaik dengan panduan ahli dari kami.
-              </p>
             </div>
             
-            <div>
-              <h4 className="font-bold text-white tracking-widest uppercase text-xs mb-6">Pusat Bantuan</h4>
-              <ul className="space-y-4 text-sm">
-                {['Lokasi Cabang', 'Klaim Garansi', 'Hubungi Sales', 'Cek Ketersediaan'].map((item) => (
-                   <li key={item} className="hover:text-cyan-400 cursor-pointer transition-all duration-300 flex items-center gap-3 group">
-                     <div className="w-1.5 h-1.5 bg-cyan-900 rounded-full group-hover:bg-cyan-400 group-hover:scale-150 transition-all duration-300"></div> 
-                     {item}
-                   </li>
+            {/* Nav Desktop */}
+            <div className={`hidden md:block overflow-hidden transition-all duration-300 ${scrolled ? 'h-0 opacity-0' : 'h-12 opacity-100'}`}>
+              <div className="max-w-7xl mx-auto px-8 flex items-center gap-8 py-3 text-xs font-semibold tracking-wider uppercase">
+                <button className="flex items-center gap-2 text-cyan-400 hover:text-white transition-colors">
+                  <i className="fas fa-bars"></i> Kategori Produk
+                </button>
+                <div className="w-px h-4 bg-[#003366]"></div>
+                {categories.slice(1).map(cat => (
+                  <button key={cat} className="text-slate-300 hover:text-cyan-400 transition-colors relative group">
+                    {cat}
+                    <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-cyan-400 group-hover:w-full transition-all duration-300"></span>
+                  </button>
                 ))}
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-bold text-white tracking-widest uppercase text-xs mb-6">Kategori Utama</h4>
-              <ul className="space-y-4 text-sm">
-                 {['Laptop Premium', 'PC Desktop', 'Monitor Kreator', 'Aksesoris Pintar'].map((item) => (
-                   <li key={item} className="hover:text-cyan-400 cursor-pointer transition-all duration-300 flex items-center gap-3 group">
-                     <div className="w-1.5 h-1.5 bg-cyan-900 rounded-full group-hover:bg-cyan-400 group-hover:scale-150 transition-all duration-300"></div> 
-                     {item}
-                   </li>
-                ))}
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-bold text-white tracking-widest uppercase text-xs mb-6">Pembaruan Katalog</h4>
-              <p className="text-sm text-slate-500 mb-4 font-light">Jadilah yang pertama tahu saat stok baru tiba.</p>
-              <div className="flex bg-[#001830] border border-white/10 rounded-full p-1 focus-within:border-cyan-400 focus-within:ring-2 ring-cyan-500/20 transition-all duration-300">
-                <input type="email" placeholder="Email Anda..." className="bg-transparent text-white px-4 py-2 text-sm w-full focus:outline-none" />
-                <button className="bg-cyan-500 text-[#002345] font-bold uppercase tracking-widest px-6 py-2 text-xs rounded-full hover:bg-cyan-400 transition-colors">Daftar</button>
               </div>
             </div>
-          </div>
-          
-          <div className="border-t border-white/5 pt-8 flex flex-col md:flex-row justify-between items-center gap-6">
-            <p className="text-xs tracking-widest text-slate-600 font-light uppercase">
-              © 2026 Smart Technology Mandiri.
-            </p>
-            <div className="flex gap-3">
-              {['FB', 'IG', 'TW', 'YT'].map(social => (
-                <div key={social} className="w-10 h-10 rounded-full bg-white/5 hover:bg-cyan-500 flex items-center justify-center text-slate-400 hover:text-[#002345] font-bold text-xs cursor-pointer transition-all duration-300 hover:-translate-y-1">
-                  {social}
+          </header>
+
+          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12">
+            
+            {/* HERO BANNER */}
+            <section className="relative rounded-3xl overflow-hidden shadow-[0_20px_50px_-12px_rgba(0,35,69,0.3)] h-56 sm:h-[400px] w-full flex items-center justify-center bg-gradient-to-br from-[#001122] via-[#002345] to-[#001830] text-white group">
+              <div className="absolute top-0 left-1/4 w-64 h-64 bg-cyan-500/20 rounded-full blur-[80px] mix-blend-screen group-hover:scale-150 transition-transform duration-1000"></div>
+              <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-blue-600/20 rounded-full blur-[80px] mix-blend-screen group-hover:scale-150 transition-transform duration-1000 delay-100"></div>
+              
+              <div className="relative z-10 text-center px-6 flex flex-col items-center">
+                <div className="inline-block border border-cyan-500/30 text-cyan-400 text-xs px-4 py-1.5 mb-6 rounded-full tracking-widest uppercase bg-white/5 backdrop-blur-md shadow-lg">
+                  Katalog Eksklusif 2026
+                </div>
+                <h1 className="text-4xl sm:text-7xl font-black mb-4 tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-400 drop-shadow-sm">
+                  SUPER GAMING WEEK
+                </h1>
+                <p className="text-sm sm:text-xl text-cyan-200/80 font-light mb-8 tracking-wide max-w-xl">
+                  Tingkatkan pengalaman digital Anda dengan teknologi masa depan yang tersedia hari ini.
+                </p>
+                <button className="bg-cyan-500 text-[#002345] hover:bg-cyan-400 font-bold py-3 px-8 rounded-full transition-all duration-300 shadow-[0_0_20px_rgba(0,243,255,0.3)] hover:shadow-[0_0_30px_rgba(0,243,255,0.5)] flex items-center gap-2 uppercase tracking-widest text-sm">
+                  Eksplorasi Sekarang <i className="fas fa-arrow-right ml-1"></i>
+                </button>
+              </div>
+            </section>
+
+            {/* FEATURES */}
+            <section className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+              {[
+                { icon: 'fa-shield-alt', title: 'Garansi Resmi', desc: '100% Original' },
+                { icon: 'fa-truck', title: 'Gratis Ongkir', desc: 'Aman & Cepat' },
+                { icon: 'fa-desktop', title: 'Toko Offline', desc: 'Seluruh Indonesia' },
+                { icon: 'fa-headphones', title: 'Layanan 24/7', desc: 'Teknisi Handal' },
+              ].map((feat, i) => (
+                <div key={i} className="bg-white p-6 rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-4 border border-slate-100 group cursor-default">
+                  <div className="bg-slate-50 text-[#002345] w-12 h-12 flex items-center justify-center rounded-full group-hover:bg-cyan-500 group-hover:text-[#002345] group-hover:shadow-[0_0_15px_rgba(0,243,255,0.3)] transition-all duration-300">
+                    <i className={`fas ${feat.icon} text-xl`}></i>
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-sm text-[#002345] tracking-wide uppercase mb-1">{feat.title}</h3>
+                    <p className="text-xs text-slate-500">{feat.desc}</p>
+                  </div>
                 </div>
               ))}
+            </section>
+
+            {/* PRODUCT SECTION */}
+            <section>
+              <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-6">
+                <h2 className="text-2xl sm:text-3xl font-black text-[#002345] flex items-center gap-3 tracking-tight">
+                  <i className="fas fa-microchip text-cyan-500 drop-shadow-sm text-3xl"></i>
+                  KATALOG <span className="text-slate-400 font-light">PRODUK</span>
+                </h2>
+
+                <div className="flex gap-3 overflow-x-auto pb-2 sm:pb-0 scrollbar-hide">
+                  {categories.map(cat => (
+                    <button 
+                      key={cat}
+                      onClick={() => setActiveCategory(cat)}
+                      className={`px-6 py-2.5 rounded-full text-xs font-bold tracking-wider uppercase whitespace-nowrap transition-all duration-300 ${
+                        activeCategory === cat 
+                          ? 'bg-[#002345] text-cyan-400 shadow-[0_4px_15px_rgba(0,35,69,0.2)] scale-105' 
+                          : 'bg-white text-slate-500 border border-slate-200 hover:border-cyan-400 hover:text-[#002345]'
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {filteredProducts.length > 0 ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-8">
+                  {filteredProducts.map((product) => (
+                    <div key={product.id} className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-[0_15px_40px_-10px_rgba(0,243,255,0.2)] hover:-translate-y-2 hover:border-cyan-200 transition-all duration-500 group flex flex-col h-full relative cursor-pointer">
+                      
+                      <div className="relative aspect-[4/3] overflow-hidden bg-slate-50 p-6 flex items-center justify-center">
+                        {product.badge && (
+                          <span className="absolute top-4 left-4 bg-gradient-to-r from-[#002345] to-[#003366] text-cyan-400 text-[10px] font-bold px-3 py-1.5 rounded-full z-10 uppercase tracking-widest shadow-md">
+                            {product.badge}
+                          </span>
+                        )}
+                        <img src={product.image} className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-700 ease-out" />
+                      </div>
+
+                      <div className="p-6 flex flex-col flex-grow bg-white z-20">
+                        <div className="text-[10px] text-cyan-600 tracking-widest uppercase mb-2 font-bold bg-cyan-50 inline-block px-2 py-1 rounded w-fit">{product.brand}</div>
+                        <h3 className="font-semibold text-[15px] text-[#002345] line-clamp-2 mb-4 group-hover:text-cyan-600 transition-colors leading-relaxed">
+                          {product.name}
+                        </h3>
+                        
+                        <div className="mt-auto pt-4">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-xs text-slate-400 line-through">{formatRupiah(product.originalPrice)}</span>
+                          </div>
+                          <div className="text-xl font-black text-[#002345] mb-4 tracking-tight group-hover:scale-105 origin-left transition-transform duration-300">
+                            {formatRupiah(product.price)}
+                          </div>
+                          
+                          <button className="w-full py-3 px-4 bg-slate-50 text-[#002345] border border-slate-200 text-xs font-bold uppercase tracking-widest rounded-xl hover:bg-[#002345] hover:border-[#002345] hover:text-cyan-400 transition-all duration-300 flex items-center justify-center gap-2">
+                            <i className="fas fa-comment-dots"></i> Tanya Stok
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-24 bg-white rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center">
+                  <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mb-6">
+                    <i className="fas fa-desktop text-4xl text-slate-300"></i>
+                  </div>
+                  <h3 className="text-xl font-bold text-[#002345] tracking-wide uppercase">Produk tidak ditemukan</h3>
+                </div>
+              )}
+            </section>
+          </main>
+
+          {/* FOOTER */}
+          <footer className="bg-[#001122] text-slate-400 border-t border-cyan-500/10 pt-20 pb-8 mt-20 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-900/10 rounded-full blur-[100px] pointer-events-none"></div>
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
+                <div className="col-span-1 md:col-span-1">
+                  <img 
+                    src="https://drive.google.com/thumbnail?id=1WLxFwy421QxxzZ4vfwfozlWSUT1qMZgr&sz=w800" 
+                    alt="SMART TECHNOLOGY MANDIRI" 
+                    className="h-12 object-contain mb-6 drop-shadow-md brightness-0 invert opacity-90"
+                    onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/400x100/001122/ffffff?text=SMART+TECH'; }}
+                  />
+                  <p className="text-sm text-slate-500 leading-relaxed mb-6 font-light">
+                    Pusat informasi dan katalog pintar produk IT. Temukan inspirasi teknologi terbaik dengan panduan ahli dari kami.
+                  </p>
+                </div>
+                
+                <div>
+                  <h4 className="font-bold text-white tracking-widest uppercase text-xs mb-6">Pusat Bantuan</h4>
+                  <ul className="space-y-4 text-sm">
+                    {['Lokasi Cabang', 'Klaim Garansi', 'Hubungi Sales', 'Cek Ketersediaan'].map((item) => (
+                      <li key={item} className="hover:text-cyan-400 cursor-pointer transition-all duration-300 flex items-center gap-3 group">
+                        <div className="w-1.5 h-1.5 bg-cyan-900 rounded-full group-hover:bg-cyan-400 group-hover:scale-150 transition-all duration-300"></div> 
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div>
+                  <h4 className="font-bold text-white tracking-widest uppercase text-xs mb-6">Kategori Utama</h4>
+                  <ul className="space-y-4 text-sm">
+                    {['Laptop Premium', 'PC Desktop', 'Monitor Kreator', 'Aksesoris Pintar'].map((item) => (
+                      <li key={item} className="hover:text-cyan-400 cursor-pointer transition-all duration-300 flex items-center gap-3 group">
+                        <div className="w-1.5 h-1.5 bg-cyan-900 rounded-full group-hover:bg-cyan-400 group-hover:scale-150 transition-all duration-300"></div> 
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div>
+                  <h4 className="font-bold text-white tracking-widest uppercase text-xs mb-6">Pembaruan Katalog</h4>
+                  <p className="text-sm text-slate-500 mb-4 font-light">Jadilah yang pertama tahu saat stok baru tiba.</p>
+                  <div className="flex bg-[#001830] border border-white/10 rounded-full p-1 focus-within:border-cyan-400 focus-within:ring-2 ring-cyan-500/20 transition-all duration-300">
+                    <input type="email" placeholder="Email Anda..." className="bg-transparent text-white px-4 py-2 text-sm w-full focus:outline-none" />
+                    <button className="bg-cyan-500 text-[#002345] font-bold uppercase tracking-widest px-6 py-2 text-xs rounded-full hover:bg-cyan-400 transition-colors">Daftar</button>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="border-t border-white/5 pt-8 flex flex-col md:flex-row justify-between items-center gap-6">
+                <p className="text-xs tracking-widest text-slate-600 font-light uppercase">
+                  © 2026 Smart Technology Mandiri.
+                </p>
+                <div className="flex gap-3">
+                  {['FB', 'IG', 'TW', 'YT'].map(social => (
+                    <div key={social} className="w-10 h-10 rounded-full bg-white/5 hover:bg-cyan-500 flex items-center justify-center text-slate-400 hover:text-[#002345] font-bold text-xs cursor-pointer transition-all duration-300 hover:-translate-y-1">
+                      {social}
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
-          </div>
+          </footer>
         </div>
-      </footer>
-    </div>
-  );
-}
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
