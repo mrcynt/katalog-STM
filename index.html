@@ -93,7 +93,7 @@
         db = getFirestore(app);
       }
 
-      // Fungsi Pengompres Gambar (SUDAH DIPERBAIKI UNTUK TRANSPARANSI PNG)
+      // Fungsi Pengompres Gambar 
       const compressImage = (file, maxWidth = 800, quality = 0.6) => {
         return new Promise((resolve) => {
           const reader = new FileReader();
@@ -458,7 +458,6 @@
         const handleImageSelectPartner = async (id, file) => {
           if (!file) return;
           try {
-            // Kita turunkan ukuran max width untuk logo menjadi 300px agar ringan, tapi jaga transparansi
             const compressedUrl = await compressImage(file, 300, 0.8);
             const updatedLogos = partnerLogos.map(p => p.id === id ? { ...p, logo: compressedUrl } : p);
             setPartnerLogos(updatedLogos);
@@ -570,7 +569,6 @@ ATURAN PENTING:
               let retries = 5;
               let delay = 1000;
               
-              // Algoritma Pencegah Gangguan Jaringan
               for(let i=0; i<retries; i++) {
                   try {
                       const response = await fetch(endpoint, {
@@ -598,171 +596,233 @@ ATURAN PENTING:
           }
         };
 
+        // ==========================================
+        // TAMPILAN LOGIN - LIGHT GLASSMORPHISM
+        // ==========================================
         if (view === 'login') {
           return (
-            <div className="min-h-screen bg-[#0D0518] flex items-center justify-center p-4 font-sans text-slate-300 relative overflow-hidden">
-              <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-[100px] pointer-events-none"></div>
-              <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-600/20 rounded-full blur-[100px] pointer-events-none"></div>
-              <div className="bg-[#1A0B2E] p-8 sm:p-12 rounded-3xl border border-purple-500/20 shadow-[0_0_50px_rgba(26,11,46,0.8)] w-full max-w-md relative z-10 backdrop-blur-xl animate-fade-in text-center">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#0D0518] border border-cyan-500/30 text-cyan-400 mb-6 shadow-[0_0_15px_rgba(34,211,238,0.2)]"><i className="fas fa-lock text-2xl"></i></div>
-                <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500 uppercase tracking-widest">Portal Admin</h2>
-                <p className="text-xs text-purple-300/60 mt-2 tracking-wide">SMART TECHNOLOGY MANDIRI</p>
-                {loginError && <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-xs px-4 py-3 rounded-xl my-6 flex items-center gap-3"><i className="fas fa-exclamation-triangle"></i> {loginError}</div>}
+            <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 font-sans text-slate-800 relative overflow-hidden">
+              {/* Background Blobs */}
+              <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-400/20 rounded-full blur-[100px] pointer-events-none"></div>
+              <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-[100px] pointer-events-none"></div>
+              
+              <div className="bg-white/70 p-8 sm:p-12 rounded-3xl border border-white shadow-[0_20px_50px_rgba(0,35,69,0.1)] w-full max-w-md relative z-10 backdrop-blur-2xl animate-fade-in text-center">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-cyan-400 to-purple-500 text-white mb-6 shadow-lg"><i className="fas fa-lock text-2xl"></i></div>
+                <h2 className="text-2xl font-black text-[#002345] uppercase tracking-widest">Portal Admin</h2>
+                <p className="text-xs text-slate-500 mt-2 tracking-wide">SMART TECHNOLOGY MANDIRI</p>
+                {loginError && <div className="bg-red-50 text-red-500 border border-red-200 text-xs px-4 py-3 rounded-xl my-6 flex items-center gap-3"><i className="fas fa-exclamation-triangle"></i> {loginError}</div>}
+                
                 <form onSubmit={handleLogin} className="space-y-5 mt-6">
-                  <input type="text" value={loginData.username} onChange={e => setLoginData({...loginData, username: e.target.value})} className="w-full bg-[#0D0518] border border-purple-500/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-400 text-center" placeholder="Username" />
-                  <input type="password" value={loginData.password} onChange={e => setLoginData({...loginData, password: e.target.value})} className="w-full bg-[#0D0518] border border-purple-500/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-400 text-center" placeholder="Password" />
-                  <button type="submit" className="w-full bg-gradient-to-r from-cyan-400 to-purple-500 text-white font-bold rounded-xl py-3 uppercase tracking-widest text-xs mt-4 hover:scale-[1.02] transition-transform shadow-lg">Masuk Sistem</button>
+                  <input type="text" value={loginData.username} onChange={e => setLoginData({...loginData, username: e.target.value})} className="w-full bg-white/80 border border-slate-200 rounded-xl px-4 py-3 text-[#002345] focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 text-center shadow-inner" placeholder="Username" />
+                  <input type="password" value={loginData.password} onChange={e => setLoginData({...loginData, password: e.target.value})} className="w-full bg-white/80 border border-slate-200 rounded-xl px-4 py-3 text-[#002345] focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 text-center shadow-inner" placeholder="Password" />
+                  <button type="submit" className="w-full bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-bold rounded-xl py-3 uppercase tracking-widest text-xs mt-4 hover:scale-[1.02] transition-transform shadow-lg shadow-cyan-500/30">Masuk Sistem</button>
                 </form>
-                <button onClick={() => { setView('catalog'); setLoginError(''); }} className="w-full mt-6 text-purple-400/70 hover:text-cyan-400 text-[10px] uppercase tracking-widest transition-colors"><i className="fas fa-arrow-left mr-2"></i>Kembali ke Katalog</button>
+                <button onClick={() => { setView('catalog'); setLoginError(''); }} className="w-full mt-6 text-slate-500 hover:text-cyan-600 text-[10px] uppercase tracking-widest transition-colors"><i className="fas fa-arrow-left mr-2"></i>Kembali ke Katalog</button>
               </div>
             </div>
           );
         }
 
+        // ==========================================
+        // TAMPILAN ADMIN DASHBOARD - LIGHT GLASSMORPHISM
+        // ==========================================
         if (view === 'admin') {
           return (
-            <div className="min-h-screen bg-[#0D0518] text-slate-300 p-4 sm:p-8 font-sans relative">
+            <div className="min-h-screen bg-[#F4F7FB] text-slate-800 p-4 sm:p-8 font-sans relative overflow-hidden">
+              
+              {/* Background Ambient Blobs */}
+              <div className="fixed top-0 left-0 w-full h-full pointer-events-none z-0">
+                 <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-br from-cyan-200/40 via-purple-200/40 to-transparent"></div>
+                 <div className="absolute -top-40 -left-40 w-96 h-96 bg-cyan-400/20 rounded-full blur-[120px]"></div>
+                 <div className="absolute top-1/4 right-10 w-96 h-96 bg-purple-500/15 rounded-full blur-[120px]"></div>
+                 <div className="absolute bottom-10 left-1/3 w-[30rem] h-[30rem] bg-blue-400/15 rounded-full blur-[120px]"></div>
+              </div>
+
               <div className="max-w-6xl mx-auto space-y-6 relative z-10">
                 
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-purple-500/20 pb-6">
+                {/* Header */}
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-200/50 pb-6">
                   <div>
-                    <h1 className="text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500">Admin Dashboard</h1>
-                    <p className="text-sm mt-1 text-purple-300/70">Kelola Katalog & Branding {db ? <span className="text-green-400 font-bold ml-2"><i className="fas fa-wifi"></i> Online</span> : <span className="text-red-400 font-bold ml-2">Offline</span>}</p>
+                    <h1 className="text-2xl sm:text-3xl font-black text-[#002345]">Admin Dashboard</h1>
+                    <p className="text-sm mt-1 text-slate-500">Kelola Katalog & Branding {db ? <span className="text-green-500 font-bold ml-2"><i className="fas fa-wifi"></i> Online</span> : <span className="text-red-500 font-bold ml-2">Offline</span>}</p>
                   </div>
                   <div className="flex gap-3 w-full sm:w-auto">
-                    <button onClick={() => setView('catalog')} className="flex-1 sm:flex-none bg-white/5 hover:bg-white/10 text-white px-6 py-2.5 rounded-full border border-purple-500/30 transition-all text-[10px] font-bold tracking-widest flex items-center justify-center gap-2"><i className="fas fa-eye"></i> LIHAT KATALOG</button>
-                    <button onClick={() => { setIsAuthenticated(false); setView('catalog'); }} className="bg-red-500/10 hover:bg-red-500/20 text-red-400 px-6 py-2.5 rounded-full border border-red-500/30 transition-all text-[10px] font-bold tracking-widest flex items-center gap-2"><i className="fas fa-power-off"></i> LOGOUT</button>
+                    <button onClick={() => setView('catalog')} className="flex-1 sm:flex-none bg-white/60 backdrop-blur-md hover:bg-white text-[#002345] px-6 py-2.5 rounded-full border border-slate-200 transition-all text-[10px] font-bold tracking-widest flex items-center justify-center gap-2 shadow-sm"><i className="fas fa-eye"></i> LIHAT KATALOG</button>
+                    <button onClick={() => { setIsAuthenticated(false); setView('catalog'); }} className="bg-red-50 text-red-500 hover:bg-red-100 px-6 py-2.5 rounded-full border border-red-100 transition-all text-[10px] font-bold tracking-widest flex items-center gap-2 shadow-sm"><i className="fas fa-power-off"></i> LOGOUT</button>
                   </div>
                 </div>
 
+                {/* Tabs */}
                 <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2">
-                  <button onClick={() => setAdminTab('dashboard')} className={`px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-2 ${adminTab === 'dashboard' ? 'bg-gradient-to-r from-cyan-400 to-purple-500 text-white shadow-[0_0_15px_rgba(34,211,238,0.3)]' : 'bg-[#1A0B2E] text-slate-400 border border-purple-500/20 hover:text-white'}`}><i className="fas fa-chart-pie"></i> Ringkasan</button>
-                  <button onClick={() => setAdminTab('products')} className={`px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-2 ${adminTab === 'products' ? 'bg-gradient-to-r from-cyan-400 to-purple-500 text-white shadow-[0_0_15px_rgba(34,211,238,0.3)]' : 'bg-[#1A0B2E] text-slate-400 border border-purple-500/20 hover:text-white'}`}><i className="fas fa-box"></i> Kelola Produk</button>
-                  <button onClick={() => setAdminTab('banner')} className={`px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-2 ${adminTab === 'banner' ? 'bg-gradient-to-r from-cyan-400 to-purple-500 text-white shadow-[0_0_15px_rgba(34,211,238,0.3)]' : 'bg-[#1A0B2E] text-slate-400 border border-purple-500/20 hover:text-white'}`}><i className="fas fa-images"></i> Banner & Logo</button>
+                  <button onClick={() => setAdminTab('dashboard')} className={`px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-2 ${adminTab === 'dashboard' ? 'bg-gradient-to-r from-cyan-500 to-purple-600 text-white shadow-md border border-transparent' : 'bg-white/60 backdrop-blur-md text-slate-600 border border-slate-200 hover:bg-white hover:text-[#002345] shadow-sm'}`}><i className="fas fa-chart-pie"></i> Ringkasan</button>
+                  <button onClick={() => setAdminTab('products')} className={`px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-2 ${adminTab === 'products' ? 'bg-gradient-to-r from-cyan-500 to-purple-600 text-white shadow-md border border-transparent' : 'bg-white/60 backdrop-blur-md text-slate-600 border border-slate-200 hover:bg-white hover:text-[#002345] shadow-sm'}`}><i className="fas fa-box"></i> Kelola Produk</button>
+                  <button onClick={() => setAdminTab('banner')} className={`px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-2 ${adminTab === 'banner' ? 'bg-gradient-to-r from-cyan-500 to-purple-600 text-white shadow-md border border-transparent' : 'bg-white/60 backdrop-blur-md text-slate-600 border border-slate-200 hover:bg-white hover:text-[#002345] shadow-sm'}`}><i className="fas fa-images"></i> Banner & Logo</button>
                 </div>
 
+                {/* 1. TAB DASHBOARD */}
                 {adminTab === 'dashboard' && (
                   <div className="space-y-6 animate-fade-in">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <div className="bg-[#1A0B2E] p-6 rounded-3xl border border-purple-500/20 relative overflow-hidden group"><i className="fas fa-box-open absolute -right-4 -bottom-4 text-6xl text-purple-500/10 group-hover:scale-110 transition-transform"></i><p className="text-purple-300 text-[10px] font-bold uppercase tracking-widest mb-2">Total SKU Produk</p><h3 className="text-3xl font-black text-white">{products.length}</h3></div>
-                      <div className="bg-[#1A0B2E] p-6 rounded-3xl border border-purple-500/20 relative overflow-hidden group"><i className="fas fa-layer-group absolute -right-4 -bottom-4 text-6xl text-cyan-500/10 group-hover:scale-110 transition-transform"></i><p className="text-purple-300 text-[10px] font-bold uppercase tracking-widest mb-2">Kategori Aktif</p><h3 className="text-3xl font-black text-white">{categories.length - 1}</h3></div>
-                      <div className="bg-[#1A0B2E] p-6 rounded-3xl border border-purple-500/20 relative overflow-hidden group"><i className="fas fa-cubes absolute -right-4 -bottom-4 text-6xl text-green-500/10 group-hover:scale-110 transition-transform"></i><p className="text-purple-300 text-[10px] font-bold uppercase tracking-widest mb-2">Total Fisik Barang</p><h3 className="text-3xl font-black text-green-400">{products.reduce((acc, p) => acc + (p.stock || 0), 0)}</h3></div>
-                      <div className="bg-[#1A0B2E] p-6 rounded-3xl border border-red-500/20 relative overflow-hidden shadow-[0_0_15px_rgba(239,68,68,0.05)] group"><i className="fas fa-exclamation-triangle absolute -right-4 -bottom-4 text-6xl text-red-500/10 group-hover:scale-110 transition-transform"></i><p className="text-red-300 text-[10px] font-bold uppercase tracking-widest mb-2">Stok Kosong</p><h3 className="text-3xl font-black text-red-400">{products.filter(p => p.stock === 0).length}</h3></div>
+                      <div className="bg-white/70 backdrop-blur-xl p-6 rounded-3xl border border-white shadow-sm hover:shadow-md transition-all relative overflow-hidden group"><i className="fas fa-box-open absolute -right-4 -bottom-4 text-6xl text-cyan-500/10 group-hover:scale-110 transition-transform"></i><p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-2">Total SKU Produk</p><h3 className="text-3xl font-black text-[#002345]">{products.length}</h3></div>
+                      <div className="bg-white/70 backdrop-blur-xl p-6 rounded-3xl border border-white shadow-sm hover:shadow-md transition-all relative overflow-hidden group"><i className="fas fa-layer-group absolute -right-4 -bottom-4 text-6xl text-purple-500/10 group-hover:scale-110 transition-transform"></i><p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-2">Kategori Aktif</p><h3 className="text-3xl font-black text-[#002345]">{categories.length - 1}</h3></div>
+                      <div className="bg-white/70 backdrop-blur-xl p-6 rounded-3xl border border-white shadow-sm hover:shadow-md transition-all relative overflow-hidden group"><i className="fas fa-cubes absolute -right-4 -bottom-4 text-6xl text-green-500/10 group-hover:scale-110 transition-transform"></i><p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-2">Total Fisik Barang</p><h3 className="text-3xl font-black text-green-600">{products.reduce((acc, p) => acc + (p.stock || 0), 0)}</h3></div>
+                      <div className="bg-white/70 backdrop-blur-xl p-6 rounded-3xl border border-white shadow-sm hover:shadow-md transition-all relative overflow-hidden group"><i className="fas fa-exclamation-triangle absolute -right-4 -bottom-4 text-6xl text-red-500/10 group-hover:scale-110 transition-transform"></i><p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-2">Stok Kosong</p><h3 className="text-3xl font-black text-red-500">{products.filter(p => p.stock === 0).length}</h3></div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                      <div className="lg:col-span-1 bg-white/70 backdrop-blur-xl p-6 rounded-3xl border border-white shadow-sm">
+                        <h2 className="text-sm font-bold text-orange-500 mb-6 flex items-center gap-2 uppercase tracking-widest"><i className="fas fa-bell"></i> Peringatan Stok Tipis</h2>
+                        <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 scrollbar-hide">
+                          {products.filter(p => p.stock === 0).map(p => (
+                             <div key={p.id} className="bg-white/80 border border-slate-100 p-4 rounded-xl shadow-sm flex justify-between items-center gap-3"><div className="flex-1"><p className="text-[#002345] text-xs font-semibold line-clamp-1">{p.name}</p><p className="text-slate-500 text-[10px] mt-1 font-bold uppercase">{p.category}</p></div><span className="bg-red-50 text-red-500 font-black text-[10px] px-2 py-1.5 rounded flex-shrink-0">KOSONG</span></div>
+                          ))}
+                          {products.filter(p => p.stock > 0 && p.stock <= 3).map(p => (
+                              <div key={p.id} className="bg-white/80 border border-slate-100 p-4 rounded-xl shadow-sm flex justify-between items-center gap-3"><div className="flex-1"><p className="text-[#002345] text-xs font-semibold line-clamp-1">{p.name}</p><p className="text-slate-500 text-[10px] mt-1 font-bold uppercase">{p.category}</p></div><span className="bg-orange-50 text-orange-500 font-black text-xs px-2 py-1 rounded flex-shrink-0">Sisa {p.stock}</span></div>
+                          ))}
+                          {products.filter(p => p.stock <= 3).length === 0 && <div className="text-center py-12 opacity-50"><i className="fas fa-check-circle text-4xl mb-3 text-green-500"></i><p className="text-xs">Semua stok produk aman</p></div>}
+                        </div>
+                      </div>
+                      
+                      <div className="lg:col-span-2 bg-white/70 backdrop-blur-xl p-6 rounded-3xl border border-white shadow-sm">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 border-b border-slate-200/50 pb-4">
+                          <h2 className="text-sm font-bold text-[#002345] flex items-center gap-2 uppercase tracking-widest"><i className="fas fa-table text-cyan-500"></i> Laporan Stok</h2>
+                          <div className="flex items-center gap-3 w-full sm:w-auto">
+                            <select value={adminCategoryFilter} onChange={e => setAdminCategoryFilter(e.target.value)} className="bg-white/80 border border-slate-200 rounded-xl px-4 py-2 text-[#002345] text-xs focus:outline-none focus:border-cyan-500 flex-1 sm:flex-none">
+                              {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                            </select>
+                            <button onClick={handleExportCSV} className="bg-green-50 hover:bg-green-100 border border-green-200 text-green-600 px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-colors">
+                              <i className="fas fa-file-excel"></i> Export CSV
+                            </button>
+                          </div>
+                        </div>
+                        <div className="overflow-x-auto max-h-[400px] scrollbar-hide">
+                          <table className="w-full text-left border-collapse min-w-[600px]">
+                            <thead className="sticky top-0 bg-white/90 backdrop-blur-md z-10"><tr className="border-b border-slate-200 text-slate-500 text-[10px] uppercase tracking-widest"><th className="p-4 font-bold w-1/2">Nama Produk</th><th className="p-4 font-bold">Kategori</th><th className="p-4 font-bold">Merek</th><th className="p-4 font-bold text-center">Stok</th></tr></thead>
+                            <tbody className="text-xs">
+                              {(adminCategoryFilter === 'Semua' ? products : products.filter(p => p.category === adminCategoryFilter)).map(p => (
+                                <tr key={p.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors group"><td className="p-4 font-semibold text-[#002345]"><div className="line-clamp-1 group-hover:text-cyan-600 transition-colors" title={p.name}>{p.name}</div><div className="text-[10px] text-slate-500 mt-1">{formatRupiah(p.price)}</div></td><td className="p-4 text-slate-600 font-medium">{p.category}</td><td className="p-4 text-cyan-600 font-bold">{p.brand}</td><td className="p-4 text-center"><span className={`px-2 py-1 rounded font-black text-[10px] ${p.stock === 0 ? 'bg-red-50 text-red-500' : p.stock <= 3 ? 'bg-orange-50 text-orange-500' : 'bg-green-50 text-green-600'}`}>{p.stock}</span></td></tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
 
+                {/* 2. TAB PRODUCTS */}
                 {adminTab === 'products' && (
-                  <div className="bg-[#1A0B2E] p-6 sm:p-8 rounded-3xl border border-purple-500/20 shadow-lg animate-fade-in">
-                    <div className={`bg-[#0D0518] p-4 sm:p-6 rounded-2xl border ${isEditing ? 'border-cyan-500/50 shadow-[0_0_15px_rgba(34,211,238,0.2)]' : 'border-purple-500/30'} mb-8 transition-all`}>
-                      <h3 className={`text-sm font-bold uppercase tracking-widest mb-4 flex items-center gap-2 ${isEditing ? 'text-cyan-400' : 'text-purple-300'}`}><i className={`fas ${isEditing ? 'fa-edit' : 'fa-plus-circle'}`}></i> {isEditing ? 'Edit Data Produk' : 'Tambah Produk Baru'}</h3>
+                  <div className="bg-white/60 backdrop-blur-xl p-6 sm:p-8 rounded-3xl border border-white shadow-[0_8px_30px_rgba(0,35,69,0.05)] animate-fade-in">
+                    <div className={`bg-white/50 backdrop-blur-md p-4 sm:p-6 rounded-2xl border ${isEditing ? 'border-cyan-400 shadow-sm' : 'border-white/80 shadow-sm'} mb-8 transition-all`}>
+                      <h3 className={`text-sm font-bold uppercase tracking-widest mb-4 flex items-center gap-2 ${isEditing ? 'text-cyan-600' : 'text-[#002345]'}`}><i className={`fas ${isEditing ? 'fa-edit' : 'fa-plus-circle'}`}></i> {isEditing ? 'Edit Data Produk' : 'Tambah Produk Baru'}</h3>
                       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4">
-                        <input type="text" placeholder="Nama Produk" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} className="bg-[#1A0B2E] border border-purple-500/30 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-400 sm:col-span-4" />
-                        <input type="number" placeholder="Harga Jual" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} className="bg-[#1A0B2E] border border-purple-500/30 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-400" />
-                        <input type="number" placeholder="Harga Coret (Original)" value={newProduct.originalPrice} onChange={e => setNewProduct({...newProduct, originalPrice: e.target.value})} className="bg-[#1A0B2E] border border-purple-500/30 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-400" />
-                        <input type="number" placeholder="Stok Fisik" value={newProduct.stock} onChange={e => setNewProduct({...newProduct, stock: e.target.value})} className="bg-[#1A0B2E] border border-purple-500/30 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-400" />
-                        <div className="sm:col-span-4 lg:col-span-1"><input type="text" placeholder="Label Badge (Misal: Best Seller)" value={newProduct.badge} onChange={e => setNewProduct({...newProduct, badge: e.target.value})} className="w-full bg-[#1A0B2E] border border-purple-500/30 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-400" /></div>
+                        <input type="text" placeholder="Nama Produk" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} className="bg-white/80 border border-slate-200 rounded-xl px-4 py-2.5 text-[#002345] text-sm focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 sm:col-span-4" />
+                        <input type="number" placeholder="Harga Jual" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} className="bg-white/80 border border-slate-200 rounded-xl px-4 py-2.5 text-[#002345] text-sm focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20" />
+                        <input type="number" placeholder="Harga Coret (Original)" value={newProduct.originalPrice} onChange={e => setNewProduct({...newProduct, originalPrice: e.target.value})} className="bg-white/80 border border-slate-200 rounded-xl px-4 py-2.5 text-[#002345] text-sm focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20" />
+                        <input type="number" placeholder="Stok Fisik" value={newProduct.stock} onChange={e => setNewProduct({...newProduct, stock: e.target.value})} className="bg-white/80 border border-slate-200 rounded-xl px-4 py-2.5 text-[#002345] text-sm focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20" />
+                        <div className="sm:col-span-4 lg:col-span-1"><input type="text" placeholder="Label Badge (Misal: Best Seller)" value={newProduct.badge} onChange={e => setNewProduct({...newProduct, badge: e.target.value})} className="w-full bg-white/80 border border-slate-200 rounded-xl px-4 py-2.5 text-[#002345] text-sm focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20" /></div>
                         
-                        <div className="sm:col-span-4 bg-[#1A0B2E] p-3 rounded-xl border border-purple-500/30 flex flex-col sm:flex-row items-center gap-4">
-                          <div className="w-full sm:flex-1"><label className="block text-[10px] uppercase tracking-widest text-purple-300 font-bold mb-1">Upload Gambar Produk</label>
-                            <input type="file" accept="image/*" onChange={(e) => { if(e.target.files[0]) { setNewProduct({...newProduct, imageFile: e.target.files[0], imagePreview: URL.createObjectURL(e.target.files[0])}) } }} className="block w-full text-xs text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-purple-500/20 file:text-cyan-400 hover:file:bg-purple-500/40 transition-all cursor-pointer" />
+                        <div className="sm:col-span-4 bg-white/80 p-3 rounded-xl border border-slate-200 flex flex-col sm:flex-row items-center gap-4">
+                          <div className="w-full sm:flex-1"><label className="block text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-1">Upload Gambar Produk</label>
+                            <input type="file" accept="image/*" onChange={(e) => { if(e.target.files[0]) { setNewProduct({...newProduct, imageFile: e.target.files[0], imagePreview: URL.createObjectURL(e.target.files[0])}) } }} className="block w-full text-xs text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-cyan-50 file:text-cyan-600 hover:file:bg-cyan-100 transition-all cursor-pointer" />
                           </div>
-                          {newProduct.imagePreview && <div className="h-16 w-16 bg-white rounded-lg flex-shrink-0 p-1"><img src={newProduct.imagePreview} className="w-full h-full object-contain" /></div>}
+                          {newProduct.imagePreview && <div className="h-16 w-16 bg-white rounded-lg flex-shrink-0 p-1 border border-slate-100"><img src={newProduct.imagePreview} className="w-full h-full object-contain" /></div>}
                         </div>
                         
                         <div className="sm:col-span-2">
-                          <select value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})} className="w-full bg-[#1A0B2E] border border-purple-500/30 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-400 mb-2">
+                          <select value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})} className="w-full bg-white/80 border border-slate-200 rounded-xl px-4 py-2.5 text-[#002345] text-sm focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 mb-2">
                             {categories.slice(1).map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                            <option value="NEW_CATEGORY" className="text-cyan-400 font-bold">+ Tambah Kategori Baru</option>
+                            <option value="NEW_CATEGORY" className="font-bold">+ Tambah Kategori Baru</option>
                           </select>
-                          {newProduct.category === 'NEW_CATEGORY' && <input type="text" placeholder="Ketik nama kategori..." value={newCustomCategory} onChange={e => setNewCustomCategory(e.target.value)} className="w-full bg-[#0D0518] border border-cyan-500/50 rounded-xl px-4 py-2 text-cyan-400 text-sm focus:outline-none focus:border-cyan-300" />}
+                          {newProduct.category === 'NEW_CATEGORY' && <input type="text" placeholder="Ketik nama kategori..." value={newCustomCategory} onChange={e => setNewCustomCategory(e.target.value)} className="w-full bg-white/90 border border-cyan-300 rounded-xl px-4 py-2 text-[#002345] text-sm focus:outline-none focus:border-cyan-500" />}
                         </div>
                         <div className="sm:col-span-2">
-                          <select value={newProduct.brand} onChange={e => setNewProduct({...newProduct, brand: e.target.value})} className="w-full bg-[#1A0B2E] border border-purple-500/30 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-400 mb-2">
+                          <select value={newProduct.brand} onChange={e => setNewProduct({...newProduct, brand: e.target.value})} className="w-full bg-white/80 border border-slate-200 rounded-xl px-4 py-2.5 text-[#002345] text-sm focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 mb-2">
                             {brandsList.map(b => <option key={b} value={b}>{b}</option>)}
-                            <option value="NEW_BRAND" className="text-cyan-400 font-bold">+ Tambah Merek Baru</option>
+                            <option value="NEW_BRAND" className="font-bold">+ Tambah Merek Baru</option>
                           </select>
-                          {newProduct.brand === 'NEW_BRAND' && <input type="text" placeholder="Ketik nama merek..." value={newCustomBrand} onChange={e => setNewCustomBrand(e.target.value)} className="w-full bg-[#0D0518] border border-cyan-500/50 rounded-xl px-4 py-2 text-cyan-400 text-sm focus:outline-none focus:border-cyan-300 uppercase" />}
+                          {newProduct.brand === 'NEW_BRAND' && <input type="text" placeholder="Ketik nama merek..." value={newCustomBrand} onChange={e => setNewCustomBrand(e.target.value)} className="w-full bg-white/90 border border-cyan-300 rounded-xl px-4 py-2 text-[#002345] text-sm focus:outline-none focus:border-cyan-500 uppercase" />}
                         </div>
                         
                         <div className="sm:col-span-4 flex flex-col sm:flex-row gap-4 mt-2">
-                          <button onClick={handleSaveProduct} disabled={isUploading} className="flex-1 bg-gradient-to-r from-cyan-400 to-purple-500 text-white font-bold rounded-xl px-4 py-3 hover:scale-[1.02] transition-transform flex justify-center items-center gap-2 shadow-md disabled:opacity-50 disabled:cursor-not-allowed">
+                          <button onClick={handleSaveProduct} disabled={isUploading} className="flex-1 bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-bold rounded-xl px-4 py-3 hover:scale-[1.02] transition-transform flex justify-center items-center gap-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
                             <i className={`fas ${isUploading ? 'fa-spinner fa-spin' : isEditing ? 'fa-save' : 'fa-plus'}`}></i> {isUploading ? 'Menyimpan...' : isEditing ? 'Simpan Perubahan' : 'Tambahkan ke Katalog'}
                           </button>
-                          {isEditing && <button onClick={handleCancelEdit} disabled={isUploading} className="bg-[#1A0B2E] border border-red-500/50 text-red-400 font-bold rounded-xl px-8 py-3 hover:bg-red-500/10 transition-colors shadow-md disabled:opacity-50">Batal</button>}
+                          {isEditing && <button onClick={handleCancelEdit} disabled={isUploading} className="bg-white/80 border border-red-200 text-red-500 font-bold rounded-xl px-8 py-3 hover:bg-red-50 transition-colors shadow-sm disabled:opacity-50">Batal</button>}
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row gap-4 mb-6 border-t border-purple-500/20 pt-8">
-                      <div className="flex-1 relative"><i className="fas fa-search absolute left-4 top-3.5 text-cyan-400/50"></i><input type="text" placeholder="Cari nama produk yang sudah tayang..." value={adminSearchQuery} onChange={e => setAdminSearchQuery(e.target.value)} className="w-full bg-[#0D0518] border border-purple-500/30 rounded-xl px-4 py-3 pl-11 text-white text-sm focus:outline-none focus:border-cyan-400 shadow-inner" /></div>
-                      <select value={adminCategoryFilter} onChange={e => setAdminCategoryFilter(e.target.value)} className="bg-[#0D0518] border border-purple-500/30 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-cyan-400 sm:w-48 shadow-inner">{categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}</select>
+                    <div className="flex flex-col sm:flex-row gap-4 mb-6 border-t border-white/50 pt-8">
+                      <div className="flex-1 relative"><i className="fas fa-search absolute left-4 top-3.5 text-slate-400"></i><input type="text" placeholder="Cari nama produk yang sudah tayang..." value={adminSearchQuery} onChange={e => setAdminSearchQuery(e.target.value)} className="w-full bg-white/70 backdrop-blur-md border border-white rounded-xl px-4 py-3 pl-11 text-[#002345] text-sm focus:outline-none focus:border-cyan-500 shadow-sm" /></div>
+                      <select value={adminCategoryFilter} onChange={e => setAdminCategoryFilter(e.target.value)} className="bg-white/70 backdrop-blur-md border border-white rounded-xl px-4 py-3 text-[#002345] text-sm focus:outline-none focus:border-cyan-500 sm:w-48 shadow-sm">{categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}</select>
                     </div>
 
                     <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2 scrollbar-hide">
                       {filteredAdminProducts.length > 0 ? filteredAdminProducts.map(p => (
-                        <div key={p.id} className="bg-[#0D0518] p-4 rounded-xl flex items-center justify-between gap-4 border border-white/5 hover:border-cyan-500/30 transition-colors shadow-sm">
+                        <div key={p.id} className="bg-white/70 backdrop-blur-md p-4 rounded-xl flex items-center justify-between gap-4 border border-white shadow-sm hover:shadow-md hover:border-cyan-200 transition-all">
                           <div className="flex items-center gap-4 flex-1">
-                            <div className="w-14 h-14 bg-white rounded-xl flex-shrink-0 overflow-hidden relative shadow-inner"><img src={p.image} className="w-full h-full object-contain p-1" /></div>
-                            <div className="flex-1"><div className="text-white text-sm font-semibold line-clamp-1">{p.name}</div><div className="flex items-center gap-4 mt-1.5"><span className="text-cyan-400 text-xs font-bold">{formatRupiah(p.price)}</span><span className={`text-[10px] px-2 py-0.5 rounded font-bold ${p.stock > 0 ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>Stok: {p.stock}</span></div></div>
+                            <div className="w-14 h-14 bg-white rounded-xl flex-shrink-0 overflow-hidden relative border border-slate-100"><img src={p.image} className="w-full h-full object-contain p-1" /></div>
+                            <div className="flex-1"><div className="text-[#002345] text-sm font-semibold line-clamp-1">{p.name}</div><div className="flex items-center gap-4 mt-1.5"><span className="text-cyan-600 text-xs font-bold">{formatRupiah(p.price)}</span><span className={`text-[10px] px-2 py-0.5 rounded font-bold ${p.stock > 0 ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500'}`}>Stok: {p.stock}</span></div></div>
                           </div>
                           <div className="flex items-center gap-2 flex-shrink-0">
-                            <button onClick={() => handleEditProduct(p)} className="text-cyan-400 hover:text-cyan-300 bg-cyan-400/10 hover:bg-cyan-400/20 w-10 h-10 rounded-full flex items-center justify-center transition-colors"><i className="fas fa-edit"></i></button>
-                            <button onClick={() => handleDeleteProduct(p.id)} className="text-red-400 hover:text-red-300 bg-red-400/10 hover:bg-red-400/20 w-10 h-10 rounded-full flex items-center justify-center transition-colors"><i className="fas fa-trash"></i></button>
+                            <button onClick={() => handleEditProduct(p)} className="text-cyan-600 hover:text-cyan-700 bg-cyan-50 hover:bg-cyan-100 w-10 h-10 rounded-full flex items-center justify-center transition-colors"><i className="fas fa-edit"></i></button>
+                            <button onClick={() => handleDeleteProduct(p.id)} className="text-red-500 hover:text-red-600 bg-red-50 hover:bg-red-100 w-10 h-10 rounded-full flex items-center justify-center transition-colors"><i className="fas fa-trash"></i></button>
                           </div>
                         </div>
-                      )) : <div className="text-center py-12 bg-[#0D0518] rounded-xl border border-white/5"><i className="fas fa-search text-3xl text-purple-500/30 mb-3"></i><p className="text-purple-300/50 text-sm">Produk tidak ditemukan.</p></div>}
+                      )) : <div className="text-center py-12 bg-white/50 rounded-xl border border-white shadow-sm"><i className="fas fa-search text-3xl text-slate-300 mb-3"></i><p className="text-slate-500 text-sm">Produk tidak ditemukan.</p></div>}
                     </div>
                   </div>
                 )}
 
+                {/* 3. TAB BANNER & LOGO */}
                 {adminTab === 'banner' && (
                   <div className="space-y-8 animate-fade-in">
                     {/* MANAJEMEN BANNER SLIDER */}
-                    <div className="bg-[#1A0B2E] p-6 sm:p-8 rounded-3xl border border-purple-500/20 shadow-lg">
-                      <h2 className="text-lg font-bold text-white mb-6 flex items-center gap-2"><i className="fas fa-images text-cyan-400"></i> Kelola Banner Slider</h2>
-                      <div className={`bg-[#0D0518] p-4 sm:p-6 rounded-2xl border ${editingBannerId ? 'border-cyan-500/50 shadow-[0_0_15px_rgba(34,211,238,0.2)]' : 'border-purple-500/30'} mb-8 transition-all`}>
-                        <h3 className={`text-sm font-bold uppercase tracking-widest mb-6 flex items-center gap-2 ${editingBannerId ? 'text-cyan-400' : 'text-purple-300'}`}>
+                    <div className="bg-white/60 backdrop-blur-xl p-6 sm:p-8 rounded-3xl border border-white shadow-[0_8px_30px_rgba(0,35,69,0.05)]">
+                      <h2 className="text-lg font-bold text-[#002345] mb-6 flex items-center gap-2"><i className="fas fa-images text-cyan-500"></i> Kelola Banner Slider</h2>
+                      <div className={`bg-white/50 backdrop-blur-md p-4 sm:p-6 rounded-2xl border ${editingBannerId ? 'border-cyan-400' : 'border-white/80'} shadow-sm mb-8 transition-all`}>
+                        <h3 className={`text-sm font-bold uppercase tracking-widest mb-6 flex items-center gap-2 ${editingBannerId ? 'text-cyan-600' : 'text-[#002345]'}`}>
                           <i className={`fas ${editingBannerId ? 'fa-edit' : 'fa-plus-circle'}`}></i> {editingBannerId ? 'Edit Banner' : 'Tambah Banner Baru'}
                         </h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                          <div><label className="block text-xs uppercase tracking-widest mb-2 text-purple-300 font-bold">Label Atas (Opsional)</label><input type="text" value={bannerForm.badge} onChange={e => setBannerForm({...bannerForm, badge: e.target.value})} className="w-full bg-[#1A0B2E] border border-purple-500/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-400" /></div>
-                          <div><label className="block text-xs uppercase tracking-widest mb-2 text-purple-300 font-bold">Teks Tombol Aksi</label><input type="text" value={bannerForm.buttonText} onChange={e => setBannerForm({...bannerForm, buttonText: e.target.value})} className="w-full bg-[#1A0B2E] border border-purple-500/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-400" /></div>
-                          <div className="sm:col-span-2"><label className="block text-xs uppercase tracking-widest mb-2 text-purple-300 font-bold">Judul Utama Banner</label><input type="text" value={bannerForm.title} onChange={e => setBannerForm({...bannerForm, title: e.target.value})} className="w-full bg-[#1A0B2E] border border-purple-500/30 rounded-xl px-4 py-3 text-white font-bold focus:outline-none focus:border-cyan-400 text-lg" /></div>
-                          <div className="sm:col-span-2"><label className="block text-xs uppercase tracking-widest mb-2 text-purple-300 font-bold">Deskripsi / Sub-judul</label><textarea value={bannerForm.subtitle} onChange={e => setBannerForm({...bannerForm, subtitle: e.target.value})} className="w-full bg-[#1A0B2E] border border-purple-500/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-400 h-24"></textarea></div>
+                          <div><label className="block text-xs uppercase tracking-widest mb-2 text-slate-500 font-bold">Label Atas (Opsional)</label><input type="text" value={bannerForm.badge} onChange={e => setBannerForm({...bannerForm, badge: e.target.value})} className="w-full bg-white/80 border border-slate-200 rounded-xl px-4 py-3 text-[#002345] focus:outline-none focus:border-cyan-500" /></div>
+                          <div><label className="block text-xs uppercase tracking-widest mb-2 text-slate-500 font-bold">Teks Tombol Aksi</label><input type="text" value={bannerForm.buttonText} onChange={e => setBannerForm({...bannerForm, buttonText: e.target.value})} className="w-full bg-white/80 border border-slate-200 rounded-xl px-4 py-3 text-[#002345] focus:outline-none focus:border-cyan-500" /></div>
+                          <div className="sm:col-span-2"><label className="block text-xs uppercase tracking-widest mb-2 text-slate-500 font-bold">Judul Utama Banner</label><input type="text" value={bannerForm.title} onChange={e => setBannerForm({...bannerForm, title: e.target.value})} className="w-full bg-white/80 border border-slate-200 rounded-xl px-4 py-3 text-[#002345] font-bold focus:outline-none focus:border-cyan-500 text-lg" /></div>
+                          <div className="sm:col-span-2"><label className="block text-xs uppercase tracking-widest mb-2 text-slate-500 font-bold">Deskripsi / Sub-judul</label><textarea value={bannerForm.subtitle} onChange={e => setBannerForm({...bannerForm, subtitle: e.target.value})} className="w-full bg-white/80 border border-slate-200 rounded-xl px-4 py-3 text-[#002345] focus:outline-none focus:border-cyan-500 h-24"></textarea></div>
                           
-                          <div className="sm:col-span-2 bg-[#1A0B2E] p-4 rounded-xl border border-purple-500/30 flex flex-col sm:flex-row items-center gap-4">
-                            <div className="w-full sm:flex-1"><label className="block text-[10px] uppercase tracking-widest text-purple-300 font-bold mb-2">Upload Gambar Latar</label>
-                              <input type="file" accept="image/*" onChange={(e) => { if(e.target.files[0]) { setBannerForm({...bannerForm, imageFile: e.target.files[0], imagePreview: URL.createObjectURL(e.target.files[0])}) } }} className="block w-full text-xs text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-purple-500/20 file:text-cyan-400 hover:file:bg-purple-500/40 transition-all cursor-pointer" />
+                          <div className="sm:col-span-2 bg-white/80 p-4 rounded-xl border border-slate-200 flex flex-col sm:flex-row items-center gap-4">
+                            <div className="w-full sm:flex-1"><label className="block text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-2">Upload Gambar Latar</label>
+                              <input type="file" accept="image/*" onChange={(e) => { if(e.target.files[0]) { setBannerForm({...bannerForm, imageFile: e.target.files[0], imagePreview: URL.createObjectURL(e.target.files[0])}) } }} className="block w-full text-xs text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-cyan-50 file:text-cyan-600 hover:file:bg-cyan-100 transition-all cursor-pointer" />
                             </div>
                             {bannerForm.imagePreview && (
                               <div className="flex flex-col items-center gap-2 flex-shrink-0">
-                                <div className="h-20 w-32 bg-[#0D0518] rounded-lg overflow-hidden border border-cyan-500/30"><img src={bannerForm.imagePreview} className="w-full h-full object-cover" /></div>
-                                <button onClick={handleRemoveBannerImage} className="text-[10px] text-red-400 hover:text-red-300 underline"><i className="fas fa-times"></i> Hapus Gambar</button>
+                                <div className="h-20 w-32 bg-slate-100 rounded-lg overflow-hidden border border-slate-200"><img src={bannerForm.imagePreview} className="w-full h-full object-cover" /></div>
+                                <button onClick={handleRemoveBannerImage} className="text-[10px] text-red-500 hover:text-red-600 underline"><i className="fas fa-times"></i> Hapus Gambar</button>
                               </div>
                             )}
                           </div>
                           <div className="sm:col-span-2 mt-4 flex flex-col sm:flex-row gap-4">
-                            <button onClick={handleSaveBannerForm} disabled={isUploading} className="flex-1 bg-gradient-to-r from-cyan-400 to-purple-500 text-white font-bold rounded-xl px-8 py-3 hover:scale-[1.02] transition-transform flex justify-center items-center gap-2 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"><i className={`fas ${isUploading ? 'fa-spinner fa-spin' : 'fa-save'}`}></i> {isUploading ? 'Menyimpan...' : editingBannerId ? 'Simpan Perubahan Banner' : 'Tambah Banner Baru'}</button>
-                            {editingBannerId && <button onClick={() => {setEditingBannerId(null); setBannerForm({badge:'', title:'', subtitle:'', buttonText:'', backgroundImage:'', imageFile:null, imagePreview:null});}} className="bg-[#1A0B2E] border border-red-500/50 text-red-400 font-bold rounded-xl px-8 py-3 hover:bg-red-500/10 transition-colors shadow-md">Batal</button>}
+                            <button onClick={handleSaveBannerForm} disabled={isUploading} className="flex-1 bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-bold rounded-xl px-8 py-3 hover:scale-[1.02] transition-transform flex justify-center items-center gap-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"><i className={`fas ${isUploading ? 'fa-spinner fa-spin' : 'fa-save'}`}></i> {isUploading ? 'Menyimpan...' : editingBannerId ? 'Simpan Perubahan Banner' : 'Tambah Banner Baru'}</button>
+                            {editingBannerId && <button onClick={() => {setEditingBannerId(null); setBannerForm({badge:'', title:'', subtitle:'', buttonText:'', backgroundImage:'', imageFile:null, imagePreview:null});}} className="bg-white/80 border border-red-200 text-red-500 font-bold rounded-xl px-8 py-3 hover:bg-red-50 transition-colors shadow-sm">Batal</button>}
                           </div>
                         </div>
                       </div>
 
                       <div className="space-y-3">
-                        <h3 className="text-sm font-bold uppercase tracking-widest text-white mb-4">Daftar Banner Tayang</h3>
+                        <h3 className="text-sm font-bold uppercase tracking-widest text-[#002345] mb-4">Daftar Banner Tayang</h3>
                         {banners.map((b, index) => (
-                          <div key={b.id} className="bg-[#0D0518] p-4 rounded-xl flex items-center justify-between gap-4 border border-white/5 hover:border-cyan-500/30 transition-colors shadow-sm">
+                          <div key={b.id} className="bg-white/70 backdrop-blur-md p-4 rounded-xl flex items-center justify-between gap-4 border border-white shadow-sm hover:shadow-md transition-all">
                             <div className="flex items-center gap-4 flex-1">
-                              <div className="w-20 h-12 bg-[#1A0B2E] rounded-lg flex-shrink-0 overflow-hidden relative shadow-inner border border-white/10">
-                                {b.backgroundImage ? <img src={b.backgroundImage} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-gradient-to-br from-cyan-500/20 to-purple-600/30"></div>}
-                                <div className="absolute top-0 left-0 bg-black/50 text-white text-[8px] px-1 py-0.5 rounded-br-md">#{index + 1}</div>
+                              <div className="w-20 h-12 bg-slate-100 rounded-lg flex-shrink-0 overflow-hidden relative border border-slate-200">
+                                {b.backgroundImage ? <img src={b.backgroundImage} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-gradient-to-br from-cyan-200/40 to-purple-300/40"></div>}
+                                <div className="absolute top-0 left-0 bg-[#002345]/80 text-white text-[8px] px-1.5 py-0.5 rounded-br-md">#{index + 1}</div>
                               </div>
-                              <div className="flex-1"><div className="text-white text-sm font-semibold line-clamp-1">{b.title || 'Tanpa Judul'}</div><div className="text-[10px] text-purple-400 mt-1">{b.subtitle ? b.subtitle.substring(0, 50) + '...' : 'Tanpa Sub-judul'}</div></div>
+                              <div className="flex-1"><div className="text-[#002345] text-sm font-semibold line-clamp-1">{b.title || 'Tanpa Judul'}</div><div className="text-[10px] text-slate-500 mt-1">{b.subtitle ? b.subtitle.substring(0, 50) + '...' : 'Tanpa Sub-judul'}</div></div>
                             </div>
                             <div className="flex items-center gap-2 flex-shrink-0">
-                              <button onClick={() => handleEditBannerClick(b)} className="text-cyan-400 hover:text-cyan-300 bg-cyan-400/10 hover:bg-cyan-400/20 w-10 h-10 rounded-full flex items-center justify-center transition-colors"><i className="fas fa-edit"></i></button>
-                              <button onClick={() => handleDeleteBannerClick(b.id)} className="text-red-400 hover:text-red-300 bg-red-400/10 hover:bg-red-400/20 w-10 h-10 rounded-full flex items-center justify-center transition-colors"><i className="fas fa-trash"></i></button>
+                              <button onClick={() => handleEditBannerClick(b)} className="text-cyan-600 hover:text-cyan-700 bg-cyan-50 hover:bg-cyan-100 w-10 h-10 rounded-full flex items-center justify-center transition-colors"><i className="fas fa-edit"></i></button>
+                              <button onClick={() => handleDeleteBannerClick(b.id)} className="text-red-500 hover:text-red-600 bg-red-50 hover:bg-red-100 w-10 h-10 rounded-full flex items-center justify-center transition-colors"><i className="fas fa-trash"></i></button>
                             </div>
                           </div>
                         ))}
@@ -770,30 +830,30 @@ ATURAN PENTING:
                     </div>
 
                     {/* MANAJEMEN SLOT LOGO PARTNER (CARD SYSTEM) */}
-                    <div className="bg-[#1A0B2E] p-6 sm:p-8 rounded-3xl border border-purple-500/20 shadow-lg">
+                    <div className="bg-white/60 backdrop-blur-xl p-6 sm:p-8 rounded-3xl border border-white shadow-[0_8px_30px_rgba(0,35,69,0.05)]">
                       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-                        <h2 className="text-lg font-bold text-white flex items-center gap-2"><i className="fas fa-handshake text-cyan-400"></i> Kelola Slot Logo Partner</h2>
-                        <button onClick={handleAddPartnerSlot} className="bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 px-4 py-2 rounded-xl text-xs font-bold transition-colors flex items-center gap-2 shadow-sm">
+                        <h2 className="text-lg font-bold text-[#002345] flex items-center gap-2"><i className="fas fa-handshake text-cyan-500"></i> Kelola Slot Logo Partner</h2>
+                        <button onClick={handleAddPartnerSlot} className="bg-cyan-50 hover:bg-cyan-100 text-cyan-700 border border-cyan-200 px-4 py-2 rounded-xl text-xs font-bold transition-colors flex items-center gap-2 shadow-sm">
                           <i className="fas fa-plus"></i> Tambah Slot
                         </button>
                       </div>
                       
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
                         {partnerLogos.map((p, index) => (
-                          <div key={p.id} className="bg-[#0D0518] p-4 rounded-2xl border border-white/10 flex flex-col gap-3 group relative hover:border-cyan-500/30 transition-colors shadow-sm">
-                            <div className="absolute -top-2 -left-2 w-6 h-6 bg-cyan-600 rounded-full flex items-center justify-center text-[10px] font-bold text-white shadow-lg border border-[#1A0B2E] z-10">{index + 1}</div>
+                          <div key={p.id} className="bg-white/70 backdrop-blur-md p-4 rounded-2xl border border-white shadow-sm flex flex-col gap-3 group relative hover:border-cyan-300 hover:shadow-md transition-all">
+                            <div className="absolute -top-2 -left-2 w-6 h-6 bg-gradient-to-r from-cyan-500 to-purple-600 rounded-full flex items-center justify-center text-[10px] font-bold text-white shadow-lg z-10">{index + 1}</div>
                             
                             {/* Area Gambar dengan Hover Upload */}
-                            <div className="h-16 bg-white/5 rounded-xl flex items-center justify-center relative overflow-hidden border border-white/5 group-hover:border-cyan-500/50 transition-colors bg-white">
+                            <div className="h-16 bg-white rounded-xl flex items-center justify-center relative overflow-hidden border border-slate-100 group-hover:border-cyan-300 transition-colors">
                               {p.logo ? (
                                  <img src={p.logo} alt={p.name} className="h-full w-full object-contain p-2" />
                               ) : (
-                                 <div className="text-[#1A0B2E]/40 text-[10px] font-black uppercase tracking-widest text-center px-2">KOSONG</div>
+                                 <div className="text-slate-300 text-[10px] font-black uppercase tracking-widest text-center px-2">KOSONG</div>
                               )}
                               {/* Hover Overlay Upload */}
-                              <label className="absolute inset-0 bg-[#1A0B2E]/80 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer backdrop-blur-sm z-20">
-                                 <i className="fas fa-upload text-cyan-400 mb-1"></i>
-                                 <span className="text-cyan-400 text-[9px] font-bold uppercase">Upload</span>
+                              <label className="absolute inset-0 bg-white/90 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer backdrop-blur-sm z-20">
+                                 <i className="fas fa-upload text-cyan-600 mb-1"></i>
+                                 <span className="text-cyan-600 text-[9px] font-bold uppercase">Upload</span>
                                  <input type="file" accept="image/*" className="hidden" onChange={e => handleImageSelectPartner(p.id, e.target.files[0])} />
                               </label>
                             </div>
@@ -805,43 +865,43 @@ ATURAN PENTING:
                               onChange={e => handleNameChangePartner(p.id, e.target.value)} 
                               onBlur={handleSavePartnersDB} 
                               placeholder="Nama Brand" 
-                              className="bg-transparent border-b border-white/10 text-white text-[10px] px-1 py-1 focus:border-cyan-400 focus:outline-none text-center w-full uppercase tracking-wider transition-colors" 
+                              className="bg-transparent border-b border-slate-200 text-[#002345] text-[10px] px-1 py-1 focus:border-cyan-500 focus:outline-none text-center w-full uppercase tracking-wider transition-colors" 
                             />
                             
-                            <div className="flex justify-between items-center mt-auto pt-2 border-t border-white/5">
-                               <button onClick={() => handleClearPartnerImage(p.id)} title="Hapus Foto Saja" className="text-orange-400 hover:text-orange-300 text-[9px] p-1 transition-colors"><i className="fas fa-eraser mr-1"></i> Foto</button>
-                               <button onClick={() => handleDeletePartnerSlot(p.id)} disabled={partnerLogos.length <= 5} title="Hapus Kotak Slot" className="text-red-400 hover:text-red-300 text-[9px] p-1 disabled:opacity-20 disabled:cursor-not-allowed transition-colors"><i className="fas fa-trash mr-1"></i> Slot</button>
+                            <div className="flex justify-between items-center mt-auto pt-2 border-t border-slate-100">
+                               <button onClick={() => handleClearPartnerImage(p.id)} title="Hapus Foto Saja" className="text-orange-500 hover:text-orange-600 text-[9px] p-1 transition-colors"><i className="fas fa-eraser mr-1"></i> Foto</button>
+                               <button onClick={() => handleDeletePartnerSlot(p.id)} disabled={partnerLogos.length <= 5} title="Hapus Kotak Slot" className="text-red-500 hover:text-red-600 text-[9px] p-1 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"><i className="fas fa-trash mr-1"></i> Slot</button>
                             </div>
                           </div>
                         ))}
                       </div>
-                      <p className="text-slate-400 text-[10px] mt-6 italic bg-white/5 p-3 rounded-lg border border-white/5"><i className="fas fa-info-circle text-cyan-400 mr-2"></i> Sistem secara otomatis mewajibkan minimal ada 5 slot. Jika Anda tidak mengupload foto, akan muncul placeholder bingkai elegan bertuliskan nama brand di halaman depan pembeli. (Perubahan nama brand otomatis tersimpan saat Anda mengetik).</p>
+                      <p className="text-slate-500 text-[10px] mt-6 italic bg-white/50 backdrop-blur-sm p-3 rounded-lg border border-white shadow-sm"><i className="fas fa-info-circle text-cyan-500 mr-2"></i> Sistem secara otomatis mewajibkan minimal ada 5 slot. Jika Anda tidak mengupload foto, akan muncul placeholder bingkai elegan bertuliskan nama brand di halaman depan pembeli. (Perubahan nama brand otomatis tersimpan saat Anda mengetik).</p>
                     </div>
 
                   </div>
                 )}
               </div>
 
-              {/* TOAST NOTIFICATION */}
+              {/* TOAST NOTIFICATION - LIGHT GLASS */}
               {toast.show && (
-                <div className={`fixed top-4 right-4 z-[100] px-6 py-3 rounded-xl shadow-xl border flex items-center gap-3 animate-fade-in ${toast.type === 'error' ? 'bg-red-500/10 border-red-500/50 text-red-400' : 'bg-green-500/10 border-green-500/50 text-green-400'}`}>
+                <div className={`fixed top-4 right-4 z-[100] px-6 py-3 rounded-xl shadow-xl border backdrop-blur-xl flex items-center gap-3 animate-fade-in ${toast.type === 'error' ? 'bg-white/90 border-red-200 text-red-600' : 'bg-white/90 border-green-200 text-green-600'}`}>
                   <i className={`fas ${toast.type === 'error' ? 'fa-exclamation-circle' : 'fa-check-circle'}`}></i>
                   <span className="text-sm font-bold">{toast.message}</span>
                 </div>
               )}
 
-              {/* CONFIRM MODAL KUSTOM */}
+              {/* CONFIRM MODAL KUSTOM - LIGHT GLASS */}
               {confirmModal.show && (
-                <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-                  <div className="bg-[#1A0B2E] border border-purple-500/30 p-6 rounded-2xl shadow-2xl max-w-sm w-full text-center animate-fade-in">
-                    <div className="w-16 h-16 bg-red-500/10 text-red-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="fixed inset-0 z-[100] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+                  <div className="bg-white/90 backdrop-blur-2xl border border-white p-6 rounded-3xl shadow-[0_30px_60px_rgba(0,35,69,0.15)] max-w-sm w-full text-center animate-fade-in">
+                    <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
                       <i className="fas fa-exclamation-triangle text-2xl"></i>
                     </div>
-                    <h3 className="text-white font-bold mb-2">Konfirmasi Hapus</h3>
-                    <p className="text-slate-400 text-sm mb-6">{confirmModal.message}</p>
+                    <h3 className="text-[#002345] font-bold mb-2">Konfirmasi Hapus</h3>
+                    <p className="text-slate-500 text-sm mb-6">{confirmModal.message}</p>
                     <div className="flex gap-3">
-                      <button onClick={handleConfirmNo} className="flex-1 bg-white/5 hover:bg-white/10 text-white rounded-xl py-2.5 text-sm font-bold transition-colors">Batal</button>
-                      <button onClick={handleConfirmYes} className="flex-1 bg-red-500 text-white rounded-xl py-2.5 text-sm font-bold shadow-[0_0_15px_rgba(239,68,68,0.4)] hover:bg-red-400 transition-colors">Ya, Hapus</button>
+                      <button onClick={handleConfirmNo} className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl py-2.5 text-sm font-bold transition-colors">Batal</button>
+                      <button onClick={handleConfirmYes} className="flex-1 bg-red-500 text-white rounded-xl py-2.5 text-sm font-bold shadow-lg shadow-red-500/30 hover:bg-red-600 transition-colors">Ya, Hapus</button>
                     </div>
                   </div>
                 </div>
@@ -850,6 +910,9 @@ ATURAN PENTING:
           );
         }
 
+        // ==========================================
+        // TAMPILAN USER (KATALOG)
+        // ==========================================
         return (
           <div className="font-sans text-gray-800 relative">
             
@@ -1070,33 +1133,35 @@ ATURAN PENTING:
               </section>
             </main>
 
-            <footer className="bg-[#0D0518] text-slate-400 border-t border-purple-500/20 pt-20 pb-8 mt-20 relative overflow-hidden">
+            {/* FOOTER MINIMALIS BARU */}
+            <footer className="bg-[#0D0518] text-slate-400 border-t border-purple-500/20 py-8 mt-20 relative overflow-hidden">
               <div className="absolute top-0 right-0 w-96 h-96 bg-purple-900/10 rounded-full blur-[100px] pointer-events-none"></div>
               <div className="absolute bottom-0 left-0 w-96 h-96 bg-cyan-900/10 rounded-full blur-[100px] pointer-events-none"></div>
-              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
-                  <div className="col-span-1 md:col-span-1">
-                    <img src="https://drive.google.com/thumbnail?id=1WLxFwy421QxxzZ4vfwfozlWSUT1qMZgr&sz=w800" alt="SMART TECHNOLOGY MANDIRI" className="h-12 object-contain mb-6 drop-shadow-md brightness-0 invert opacity-90" onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/400x100/0D0518/ffffff?text=SMART+TECH'; }} />
-                    <p className="text-sm text-slate-500 leading-relaxed mb-6 font-light">Pusat informasi dan katalog pintar produk IT. Temukan inspirasi teknologi terbaik dengan panduan ahli dari kami.</p>
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-white tracking-widest uppercase text-xs mb-6">Pusat Bantuan</h4>
-                    <ul className="space-y-4 text-sm">{['Lokasi Cabang', 'Klaim Garansi', 'Hubungi Sales', 'Cek Ketersediaan'].map(item => <li key={item} className="hover:text-purple-400 cursor-pointer transition-all duration-300 flex items-center gap-3 group"><div className="w-1.5 h-1.5 bg-purple-900 rounded-full group-hover:bg-cyan-400 group-hover:scale-150 transition-all duration-300"></div> {item}</li>)}</ul>
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-white tracking-widest uppercase text-xs mb-6">Kategori Utama</h4>
-                    <ul className="space-y-4 text-sm">{['Laptop Premium', 'PC Desktop', 'Monitor Kreator', 'Aksesoris Pintar'].map(item => <li key={item} className="hover:text-purple-400 cursor-pointer transition-all duration-300 flex items-center gap-3 group"><div className="w-1.5 h-1.5 bg-purple-900 rounded-full group-hover:bg-cyan-400 group-hover:scale-150 transition-all duration-300"></div> {item}</li>)}</ul>
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-white tracking-widest uppercase text-xs mb-6">Pembaruan Katalog</h4>
-                    <p className="text-sm text-slate-500 mb-4 font-light">Jadilah yang pertama tahu saat stok baru tiba.</p>
-                    <div className="flex bg-[#140824] border border-white/10 rounded-full p-1 focus-within:border-purple-400 focus-within:ring-2 ring-purple-500/20 transition-all duration-300"><input type="email" placeholder="Email Anda..." className="bg-transparent text-white px-4 py-2 text-sm w-full focus:outline-none" /><button className="bg-gradient-to-r from-cyan-400 to-purple-500 text-white font-bold uppercase tracking-widest px-6 py-2 text-xs rounded-full hover:scale-105 transition-all duration-300">Daftar</button></div>
-                  </div>
+              
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+                
+                {/* Bagian Kiri: Logo & Slogan */}
+                <div className="flex flex-col items-center md:items-start gap-2">
+                  <img src="https://drive.google.com/thumbnail?id=1WLxFwy421QxxzZ4vfwfozlWSUT1qMZgr&sz=w800" alt="SMART TECHNOLOGY MANDIRI" className="h-8 sm:h-10 object-contain drop-shadow-md brightness-0 invert opacity-90" onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/400x100/0D0518/ffffff?text=SMART+TECH'; }} />
+                  <p className="text-[10px] sm:text-xs text-slate-500 font-light tracking-wide text-center md:text-left">
+                    Mitra Teknologi Pintar & Terpercaya Anda.
+                  </p>
                 </div>
-                <div className="border-t border-white/5 pt-8 flex flex-col md:flex-row justify-between items-center gap-6">
-                  <p className="text-xs tracking-widest text-slate-600 font-light uppercase">© 2026 Smart Technology Mandiri.</p>
-                  <div className="flex gap-3">{['FB', 'IG', 'TW', 'YT'].map(social => <div key={social} className="w-10 h-10 rounded-full bg-white/5 hover:bg-gradient-to-r hover:from-cyan-400 hover:to-purple-500 flex items-center justify-center text-slate-400 hover:text-white font-bold text-xs cursor-pointer transition-all duration-300 hover:-translate-y-1">{social}</div>)}</div>
+
+                {/* Bagian Tengah: Copyright */}
+                <p className="text-[10px] tracking-widest text-slate-600 font-bold uppercase order-3 md:order-2">
+                  © 2026 Smart Technology Mandiri.
+                </p>
+
+                {/* Bagian Kanan: Social Media */}
+                <div className="flex gap-3 order-2 md:order-3">
+                  {['FB', 'IG', 'TW', 'YT'].map(social => (
+                    <div key={social} className="w-8 h-8 rounded-full bg-white/5 hover:bg-gradient-to-r hover:from-cyan-400 hover:to-purple-500 flex items-center justify-center text-slate-400 hover:text-white font-bold text-[10px] cursor-pointer transition-all duration-300 hover:-translate-y-1 shadow-sm">
+                      {social}
+                    </div>
+                  ))}
                 </div>
+
               </div>
             </footer>
           </div>
