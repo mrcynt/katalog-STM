@@ -531,6 +531,7 @@
           setChatInput('');
           setIsTyping(true);
 
+          // PENTING: Untuk di Canvas biarkan kosong "". Jika upload ke Vercel, isi dengan API Key dari Google AI Studio.
           const apiKey = ""; 
           const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
 
@@ -553,7 +554,9 @@ ATURAN PENTING:
 4. Jika pelanggan mencari spesifikasi/barang di luar katalog, beri tahu dengan sopan bahwa stok tersebut sedang tidak ada, dan arahkan ke alternatif terbaik yang kita miliki di katalog.
 5. Jawab dengan ringkas namun informatif (maksimal 3-4 kalimat).`;
 
-          const apiContents = chatMessages.map(msg => ({
+          // FIX BUG: API Gemini mewajibkan array riwayat chat diawali dengan User (Bukan Model).
+          // Karenanya, kita .slice(1) untuk menghapus pesan sambutan bawaan.
+          const apiContents = chatMessages.slice(1).map(msg => ({
              role: msg.role === 'model' ? 'model' : 'user',
              parts: [{ text: msg.text }]
           }));
