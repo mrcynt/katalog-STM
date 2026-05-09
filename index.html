@@ -70,6 +70,10 @@
       const isConfigValid = firebaseConfig.projectId && firebaseConfig.projectId !== "ISI_PROJECT_ID_DISINI";
       
       if (isConfigValid) {
+        if (typeof __firebase_config !== 'undefined') {
+          firebaseConfig = JSON.parse(__firebase_config);
+          appId = typeof __app_id !== 'undefined' ? __app_id : appId;
+        }
         app = initializeApp(firebaseConfig);
         auth = getAuth(app);
         db = getFirestore(app);
@@ -118,15 +122,44 @@
         const [products, setProducts] = useState(INITIAL_PRODUCTS);
         const [categories, setCategories] = useState(['Semua', 'Laptop', 'Monitor', 'Aksesoris', 'Komponen PC']);
         const [brandsList, setBrandsList] = useState(BRANDS_INITIAL);
-        const [bannerInfo, setBannerInfo] = useState({
+        
+        // --- STATE UNTUK CUSTOM MODAL & TOAST (PENGGANTI ALERT/CONFIRM) ---
+        const [toast, setToast] = useState({ show: false, message: '', type: 'info' });
+        const [confirmModal, setConfirmModal] = useState({ show: false, message: '', onConfirm: null });
+
+        const showToast = (message, type = 'success') => {
+          setToast({ show: true, message, type });
+          setTimeout(() => setToast({ show: false, message: '', type: 'info' }), 3000);
+        };
+
+        const confirmAction = (message, action) => {
+          setConfirmModal({ show: true, message, onConfirm: action });
+        };
+
+        const handleConfirmYes = () => {
+          if (confirmModal.onConfirm) confirmModal.onConfirm();
+          setConfirmModal({ show: false, message: '', onConfirm: null });
+        };
+
+        const handleConfirmNo = () => {
+          setConfirmModal({ show: false, message: '', onConfirm: null });
+        };
+        // -------------------------------------------------------------------
+
+        // --- STATE UNTUK BANNER SLIDER ---
+        const [banners, setBanners] = useState([{
+          id: 1,
           badge: 'Katalog Eksklusif 2026',
           title: 'SUPER GAMING WEEK',
           subtitle: 'Tingkatkan pengalaman digital Anda dengan teknologi masa depan yang tersedia hari ini.',
           buttonText: 'Eksplorasi Sekarang',
-          backgroundImage: '',
-          imageFile: null,
-          imagePreview: null
+          backgroundImage: ''
+        }]);
+        const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
+        const [bannerForm, setBannerForm] = useState({
+          badge: '', title: '', subtitle: '', buttonText: '', backgroundImage: '', imageFile: null, imagePreview: null
         });
+        const [editingBannerId, setEditingBannerId] = useState(null);
         
         const [newProduct, setNewProduct] = useState({
           name: '', price: '', originalPrice: '', category: 'Laptop', brand: 'ASUS', badge: '', image: '', imageFile: null, imagePreview: null, stock: ''
@@ -141,10 +174,19 @@
         const [adminSearchQuery, setAdminSearchQuery] = useState('');
         const [adminCategoryFilter, setAdminCategoryFilter] = useState('Semua');
 
+        // --- STATE UNTUK PENCARIAN USER ---
+        const [searchQuery, setSearchQuery] = useState('');
+
         useEffect(() => {
           if (!auth) return;
           const initAuth = async () => {
-            try { await signInAnonymously(auth); } catch(e) { console.error(e) }
+            try { 
+              if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                await signInWithCustomToken(auth, __initial_auth_token);
+              } else {
+                await signInAnonymously(auth); 
+              }
+            } catch(e) { console.error("Auth error", e) }
           };
           initAuth();
           const unsubscribe = onAuthStateChanged(auth, setDbUser);
@@ -159,23 +201,39 @@
             if (!snap.empty) {
               const prods = snap.docs.map(doc => ({id: Number(doc.id), ...doc.data()}));
               setProducts(prods.sort((a,b) => b.id - a.id));
+            } else {
+              // Populate initial data if empty
+              INITIAL_PRODUCTS.forEach(p => setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'products', String(p.id)), p));
             }
-          });
+          }, (err) => console.error("Snapshot error (Products):", err));
 
           const settingsRef = collection(db, 'artifacts', appId, 'public', 'data', 'settings');
           const unsubSettings = onSnapshot(settingsRef, (snap) => {
             snap.docs.forEach(docSnap => {
               if (docSnap.id === 'catalogSettings') {
                 const data = docSnap.data();
-                if(data.bannerInfo) setBannerInfo(prev => ({...prev, ...data.bannerInfo, imageFile: null, imagePreview: data.bannerInfo.backgroundImage}));
+                if(data.banners && data.banners.length > 0) {
+                  setBanners(data.banners);
+                } else if(data.bannerInfo) {
+                  setBanners([{ id: 1, ...data.bannerInfo }]);
+                }
                 if(data.categories) setCategories(data.categories);
                 if(data.brandsList) setBrandsList(data.brandsList);
               }
             });
-          });
+          }, (err) => console.error("Snapshot error (Settings):", err));
 
           return () => { unsubProducts(); unsubSettings(); };
         }, [dbUser]);
+
+        // EFEK AUTO SLIDE BANNER
+        useEffect(() => {
+          if (view !== 'catalog' || banners.length <= 1) return;
+          const timer = setInterval(() => {
+            setCurrentBannerIndex((prev) => (prev + 1) % banners.length);
+          }, 5000); // Ganti banner tiap 5 detik
+          return () => clearInterval(timer);
+        }, [banners.length, view]);
 
         useEffect(() => {
           const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -183,7 +241,12 @@
           return () => window.removeEventListener('scroll', handleScroll);
         }, []);
 
-        const filteredProducts = products.filter(product => activeCategory === 'Semua' || product.category === activeCategory);
+        const filteredProducts = products.filter(product => {
+          const matchCategory = activeCategory === 'Semua' || product.category === activeCategory;
+          const matchSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) || product.brand.toLowerCase().includes(searchQuery.toLowerCase());
+          return matchCategory && matchSearch;
+        });
+
         const filteredAdminProducts = products.filter(product => {
           const matchesSearch = product.name.toLowerCase().includes(adminSearchQuery.toLowerCase());
           const matchesCategory = adminCategoryFilter === 'Semua' || product.category === adminCategoryFilter;
@@ -226,7 +289,6 @@
           let imageUrl = newProduct.image || 'https://placehold.co/400x300/ffffff/1A0B2E?text=No+Image';
 
           try {
-            // Kompresi Gambar menjadi Base64 (Bebas Biaya)
             if (newProduct.imageFile) {
               imageUrl = await compressImage(newProduct.imageFile);
             }
@@ -249,44 +311,93 @@
               setCategories(newCats); setBrandsList(newBrands);
             }
             
+            showToast(isEditing ? "Perubahan produk berhasil disimpan!" : "Produk baru berhasil ditambahkan!");
             setIsEditing(false); setEditId(null);
             setNewProduct({ name: '', price: '', originalPrice: '', category: 'Laptop', brand: 'ASUS', badge: '', image: '', imageFile: null, imagePreview: null, stock: '' });
             setNewCustomCategory(''); setNewCustomBrand('');
           } catch (error) {
-            console.error(error); alert("Terjadi kesalahan sistem saat memproses gambar.");
+            console.error(error); showToast("Terjadi kesalahan sistem saat memproses gambar.", "error");
           } finally {
             setIsUploading(false);
           }
         };
 
-        const handleDeleteProduct = async (id) => {
-          if(window.confirm("Yakin ingin menghapus produk ini?")) {
+        const handleDeleteProduct = (id) => {
+          confirmAction("Yakin ingin menghapus produk ini secara permanen?", async () => {
             if (db) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'products', String(id)));
             else setProducts(products.filter(p => p.id !== id));
-          }
+            showToast("Produk berhasil dihapus.");
+          });
         };
 
-        const handleSaveBanner = async () => {
+        const handleSaveBannerForm = async () => {
           setIsUploading(true);
           try {
-            let bgUrl = bannerInfo.backgroundImage;
-            if (bannerInfo.imageFile) {
-              bgUrl = await compressImage(bannerInfo.imageFile);
+            let bgUrl = bannerForm.backgroundImage;
+            if (bannerForm.imageFile) {
+              bgUrl = await compressImage(bannerForm.imageFile);
             }
 
-            const finalBannerInfo = { badge: bannerInfo.badge, title: bannerInfo.title, subtitle: bannerInfo.subtitle, buttonText: bannerInfo.buttonText, backgroundImage: bgUrl };
+            const newBannerData = { 
+              id: editingBannerId || Date.now(),
+              badge: bannerForm.badge, 
+              title: bannerForm.title, 
+              subtitle: bannerForm.subtitle, 
+              buttonText: bannerForm.buttonText, 
+              backgroundImage: bgUrl 
+            };
+
+            let updatedBanners;
+            if (editingBannerId) {
+              updatedBanners = banners.map(b => b.id === editingBannerId ? newBannerData : b);
+            } else {
+              updatedBanners = [...banners, newBannerData];
+            }
 
             if (db) {
-              await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'catalogSettings'), { bannerInfo: finalBannerInfo }, { merge: true });
-              alert("Banner berhasil diperbarui!");
+              await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'catalogSettings'), { banners: updatedBanners }, { merge: true });
             } else {
-              setBannerInfo(prev => ({...prev, ...finalBannerInfo, imageFile: null, imagePreview: bgUrl}));
+              setBanners(updatedBanners);
             }
+            
+            showToast(editingBannerId ? "Banner berhasil diperbarui!" : "Banner baru berhasil ditambahkan!");
+            setBannerForm({ badge: '', title: '', subtitle: '', buttonText: '', backgroundImage: '', imageFile: null, imagePreview: null });
+            setEditingBannerId(null);
           } catch (error) {
-            console.error(error); alert("Gagal memperbarui banner.");
+            console.error(error); showToast("Gagal menyimpan data banner.", "error");
           } finally {
             setIsUploading(false);
           }
+        };
+
+        const handleEditBannerClick = (banner) => {
+          setBannerForm({
+            badge: banner.badge || '', title: banner.title || '', subtitle: banner.subtitle || '', buttonText: banner.buttonText || '',
+            backgroundImage: banner.backgroundImage || '', imageFile: null, imagePreview: banner.backgroundImage || null
+          });
+          setEditingBannerId(banner.id);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
+        const handleDeleteBannerClick = (id) => {
+          if(banners.length <= 1) {
+            showToast("Gagal: Harus tersisa minimal 1 banner yang tayang!", "error");
+            return;
+          }
+          confirmAction("Yakin ingin menghapus banner ini dari halaman depan?", async () => {
+            const updatedBanners = banners.filter(b => b.id !== id);
+            if (db) {
+              await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'catalogSettings'), { banners: updatedBanners }, { merge: true });
+            } else {
+              setBanners(updatedBanners);
+            }
+            if(currentBannerIndex >= updatedBanners.length) setCurrentBannerIndex(0);
+            showToast("Banner berhasil dihapus.");
+          });
+        };
+
+        const handleRemoveBannerImage = () => {
+          setBannerForm({ ...bannerForm, backgroundImage: '', imageFile: null, imagePreview: null });
         };
 
         const handleEditProduct = (product) => {
@@ -332,8 +443,8 @@
 
         if (view === 'admin') {
           return (
-            <div className="min-h-screen bg-[#0D0518] text-slate-300 p-4 sm:p-8 font-sans">
-              <div className="max-w-6xl mx-auto space-y-6">
+            <div className="min-h-screen bg-[#0D0518] text-slate-300 p-4 sm:p-8 font-sans relative">
+              <div className="max-w-6xl mx-auto space-y-6 relative z-10">
                 
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-purple-500/20 pb-6">
                   <div>
@@ -459,24 +570,80 @@
 
                 {adminTab === 'banner' && (
                   <div className="bg-[#1A0B2E] p-6 sm:p-8 rounded-3xl border border-purple-500/20 shadow-lg animate-fade-in">
-                    <h2 className="text-lg font-bold text-white mb-6 flex items-center gap-2"><i className="fas fa-image text-cyan-400"></i> Edit Banner Utama</h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                      <div><label className="block text-xs uppercase tracking-widest mb-2 text-purple-300 font-bold">Label Atas (Opsional)</label><input type="text" value={bannerInfo.badge} onChange={e => setBannerInfo({...bannerInfo, badge: e.target.value})} className="w-full bg-[#0D0518] border border-purple-500/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-400" /></div>
-                      <div><label className="block text-xs uppercase tracking-widest mb-2 text-purple-300 font-bold">Teks Tombol Aksi</label><input type="text" value={bannerInfo.buttonText} onChange={e => setBannerInfo({...bannerInfo, buttonText: e.target.value})} className="w-full bg-[#0D0518] border border-purple-500/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-400" /></div>
-                      <div className="sm:col-span-2"><label className="block text-xs uppercase tracking-widest mb-2 text-purple-300 font-bold">Judul Utama Banner</label><input type="text" value={bannerInfo.title} onChange={e => setBannerInfo({...bannerInfo, title: e.target.value})} className="w-full bg-[#0D0518] border border-purple-500/30 rounded-xl px-4 py-3 text-white font-bold focus:outline-none focus:border-cyan-400 text-lg" /></div>
-                      <div className="sm:col-span-2"><label className="block text-xs uppercase tracking-widest mb-2 text-purple-300 font-bold">Deskripsi / Sub-judul</label><textarea value={bannerInfo.subtitle} onChange={e => setBannerInfo({...bannerInfo, subtitle: e.target.value})} className="w-full bg-[#0D0518] border border-purple-500/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-400 h-24"></textarea></div>
-                      
-                      <div className="sm:col-span-2 bg-[#0D0518] p-4 rounded-xl border border-purple-500/30 flex flex-col sm:flex-row items-center gap-4">
-                        <div className="w-full sm:flex-1"><label className="block text-[10px] uppercase tracking-widest text-purple-300 font-bold mb-2">Upload Gambar Latar (Otomatis Tersimpan)</label>
-                          <input type="file" accept="image/*" onChange={(e) => { if(e.target.files[0]) { setBannerInfo({...bannerInfo, imageFile: e.target.files[0], imagePreview: URL.createObjectURL(e.target.files[0])}) } }} className="block w-full text-xs text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-purple-500/20 file:text-cyan-400 hover:file:bg-purple-500/40 transition-all cursor-pointer" />
+                    <div className={`bg-[#0D0518] p-4 sm:p-6 rounded-2xl border ${editingBannerId ? 'border-cyan-500/50 shadow-[0_0_15px_rgba(34,211,238,0.2)]' : 'border-purple-500/30'} mb-8 transition-all`}>
+                      <h3 className={`text-sm font-bold uppercase tracking-widest mb-6 flex items-center gap-2 ${editingBannerId ? 'text-cyan-400' : 'text-purple-300'}`}>
+                        <i className={`fas ${editingBannerId ? 'fa-edit' : 'fa-plus-circle'}`}></i> {editingBannerId ? 'Edit Banner' : 'Tambah Banner Baru'}
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <div><label className="block text-xs uppercase tracking-widest mb-2 text-purple-300 font-bold">Label Atas (Opsional)</label><input type="text" value={bannerForm.badge} onChange={e => setBannerForm({...bannerForm, badge: e.target.value})} className="w-full bg-[#1A0B2E] border border-purple-500/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-400" /></div>
+                        <div><label className="block text-xs uppercase tracking-widest mb-2 text-purple-300 font-bold">Teks Tombol Aksi</label><input type="text" value={bannerForm.buttonText} onChange={e => setBannerForm({...bannerForm, buttonText: e.target.value})} className="w-full bg-[#1A0B2E] border border-purple-500/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-400" /></div>
+                        <div className="sm:col-span-2"><label className="block text-xs uppercase tracking-widest mb-2 text-purple-300 font-bold">Judul Utama Banner</label><input type="text" value={bannerForm.title} onChange={e => setBannerForm({...bannerForm, title: e.target.value})} className="w-full bg-[#1A0B2E] border border-purple-500/30 rounded-xl px-4 py-3 text-white font-bold focus:outline-none focus:border-cyan-400 text-lg" /></div>
+                        <div className="sm:col-span-2"><label className="block text-xs uppercase tracking-widest mb-2 text-purple-300 font-bold">Deskripsi / Sub-judul</label><textarea value={bannerForm.subtitle} onChange={e => setBannerForm({...bannerForm, subtitle: e.target.value})} className="w-full bg-[#1A0B2E] border border-purple-500/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-400 h-24"></textarea></div>
+                        
+                        <div className="sm:col-span-2 bg-[#1A0B2E] p-4 rounded-xl border border-purple-500/30 flex flex-col sm:flex-row items-center gap-4">
+                          <div className="w-full sm:flex-1"><label className="block text-[10px] uppercase tracking-widest text-purple-300 font-bold mb-2">Upload Gambar Latar (Otomatis Tersimpan)</label>
+                            <input type="file" accept="image/*" onChange={(e) => { if(e.target.files[0]) { setBannerForm({...bannerForm, imageFile: e.target.files[0], imagePreview: URL.createObjectURL(e.target.files[0])}) } }} className="block w-full text-xs text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-purple-500/20 file:text-cyan-400 hover:file:bg-purple-500/40 transition-all cursor-pointer" />
+                          </div>
+                          {bannerForm.imagePreview && (
+                            <div className="flex flex-col items-center gap-2 flex-shrink-0">
+                              <div className="h-20 w-32 bg-[#0D0518] rounded-lg overflow-hidden border border-cyan-500/30"><img src={bannerForm.imagePreview} className="w-full h-full object-cover" /></div>
+                              <button onClick={handleRemoveBannerImage} className="text-[10px] text-red-400 hover:text-red-300 underline"><i className="fas fa-times"></i> Hapus Gambar (Default)</button>
+                            </div>
+                          )}
                         </div>
-                        {bannerInfo.imagePreview && <div className="h-20 w-32 bg-[#1A0B2E] rounded-lg flex-shrink-0 overflow-hidden border border-cyan-500/30"><img src={bannerInfo.imagePreview} className="w-full h-full object-cover" /></div>}
+                        <div className="sm:col-span-2 mt-4 flex flex-col sm:flex-row gap-4">
+                          <button onClick={handleSaveBannerForm} disabled={isUploading} className="flex-1 bg-gradient-to-r from-cyan-400 to-purple-500 text-white font-bold rounded-xl px-8 py-3 hover:scale-[1.02] transition-transform flex justify-center items-center gap-2 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"><i className={`fas ${isUploading ? 'fa-spinner fa-spin' : 'fa-save'}`}></i> {isUploading ? 'Menyimpan...' : editingBannerId ? 'Simpan Perubahan Banner' : 'Tambah Banner Baru'}</button>
+                          {editingBannerId && <button onClick={() => {setEditingBannerId(null); setBannerForm({badge:'', title:'', subtitle:'', buttonText:'', backgroundImage:'', imageFile:null, imagePreview:null});}} className="bg-[#1A0B2E] border border-red-500/50 text-red-400 font-bold rounded-xl px-8 py-3 hover:bg-red-500/10 transition-colors shadow-md">Batal</button>}
+                        </div>
                       </div>
-                      <div className="sm:col-span-2 mt-4"><button onClick={handleSaveBanner} disabled={isUploading} className="w-full sm:w-auto bg-gradient-to-r from-cyan-400 to-purple-500 text-white font-bold rounded-xl px-8 py-3 hover:scale-[1.02] transition-transform flex justify-center items-center gap-2 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"><i className={`fas ${isUploading ? 'fa-spinner fa-spin' : 'fa-save'}`}></i> {isUploading ? 'Menyimpan...' : 'Simpan Perubahan Banner'}</button></div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <h3 className="text-sm font-bold uppercase tracking-widest text-white mb-4">Daftar Banner Tayang</h3>
+                      {banners.map((b, index) => (
+                        <div key={b.id} className="bg-[#0D0518] p-4 rounded-xl flex items-center justify-between gap-4 border border-white/5 hover:border-cyan-500/30 transition-colors shadow-sm">
+                          <div className="flex items-center gap-4 flex-1">
+                            <div className="w-20 h-12 bg-[#1A0B2E] rounded-lg flex-shrink-0 overflow-hidden relative shadow-inner border border-white/10">
+                              {b.backgroundImage ? <img src={b.backgroundImage} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-gradient-to-br from-cyan-500/20 to-purple-600/30"></div>}
+                              <div className="absolute top-0 left-0 bg-black/50 text-white text-[8px] px-1 py-0.5 rounded-br-md">#{index + 1}</div>
+                            </div>
+                            <div className="flex-1"><div className="text-white text-sm font-semibold line-clamp-1">{b.title || 'Tanpa Judul'}</div><div className="text-[10px] text-purple-400 mt-1">{b.subtitle ? b.subtitle.substring(0, 50) + '...' : 'Tanpa Sub-judul'}</div></div>
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <button onClick={() => handleEditBannerClick(b)} className="text-cyan-400 hover:text-cyan-300 bg-cyan-400/10 hover:bg-cyan-400/20 w-10 h-10 rounded-full flex items-center justify-center transition-colors"><i className="fas fa-edit"></i></button>
+                            <button onClick={() => handleDeleteBannerClick(b.id)} className="text-red-400 hover:text-red-300 bg-red-400/10 hover:bg-red-400/20 w-10 h-10 rounded-full flex items-center justify-center transition-colors"><i className="fas fa-trash"></i></button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}
               </div>
+
+              {/* TOAST NOTIFICATION */}
+              {toast.show && (
+                <div className={`fixed top-4 right-4 z-[100] px-6 py-3 rounded-xl shadow-xl border flex items-center gap-3 animate-fade-in ${toast.type === 'error' ? 'bg-red-500/10 border-red-500/50 text-red-400' : 'bg-green-500/10 border-green-500/50 text-green-400'}`}>
+                  <i className={`fas ${toast.type === 'error' ? 'fa-exclamation-circle' : 'fa-check-circle'}`}></i>
+                  <span className="text-sm font-bold">{toast.message}</span>
+                </div>
+              )}
+
+              {/* CONFIRM MODAL KUSTOM */}
+              {confirmModal.show && (
+                <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+                  <div className="bg-[#1A0B2E] border border-purple-500/30 p-6 rounded-2xl shadow-2xl max-w-sm w-full text-center animate-fade-in">
+                    <div className="w-16 h-16 bg-red-500/10 text-red-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <i className="fas fa-exclamation-triangle text-2xl"></i>
+                    </div>
+                    <h3 className="text-white font-bold mb-2">Konfirmasi Hapus</h3>
+                    <p className="text-slate-400 text-sm mb-6">{confirmModal.message}</p>
+                    <div className="flex gap-3">
+                      <button onClick={handleConfirmNo} className="flex-1 bg-white/5 hover:bg-white/10 text-white rounded-xl py-2.5 text-sm font-bold transition-colors">Batal</button>
+                      <button onClick={handleConfirmYes} className="flex-1 bg-red-500 text-white rounded-xl py-2.5 text-sm font-bold shadow-[0_0_15px_rgba(239,68,68,0.4)] hover:bg-red-400 transition-colors">Ya, Hapus</button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           );
         }
@@ -487,39 +654,87 @@
 
             <header className={`sticky top-0 z-40 transition-all duration-300 ${scrolled ? 'bg-[#1A0B2E]/90 backdrop-blur-lg shadow-lg py-2' : 'bg-[#1A0B2E] py-4'} border-b border-white/5`}>
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex items-center justify-between gap-6">
-                  <div className="flex items-center gap-4 cursor-pointer group">
-                    <img src="https://drive.google.com/thumbnail?id=1WLxFwy421QxxzZ4vfwfozlWSUT1qMZgr&sz=w800" alt="SMART TECHNOLOGY MANDIRI" onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/400x100/1A0B2E/a855f7?text=SMART+TECH'; }} className="h-10 sm:h-12 object-contain group-hover:scale-105 transition-transform duration-300 drop-shadow-[0_0_12px_rgba(168,85,247,0.4)]" />
+                <div className="flex items-center justify-between gap-3 sm:gap-6">
+                  
+                  <div className="flex items-center gap-3 sm:gap-4 cursor-pointer group flex-shrink-0">
+                    <img src="https://drive.google.com/thumbnail?id=1WLxFwy421QxxzZ4vfwfozlWSUT1qMZgr&sz=w800" alt="SMART TECHNOLOGY MANDIRI" onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/400x100/1A0B2E/a855f7?text=SMART+TECH'; }} className="h-8 sm:h-12 object-contain group-hover:scale-105 transition-transform duration-300 drop-shadow-[0_0_12px_rgba(168,85,247,0.4)]" />
                     <div className="hidden sm:block border-l-2 border-purple-500/30 pl-4 py-1">
                       <h1 className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-400 font-bold tracking-widest text-sm uppercase flex items-center gap-2"><i className="fas fa-bolt text-yellow-400 text-xs"></i> KATALOG RESMI</h1>
                       <p className="text-slate-300 text-[10px] tracking-widest uppercase mt-0.5">SMART TECHNOLOGY MANDIRI</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-6">
-                    <button onClick={() => { isAuthenticated ? setView('admin') : setView('login') }} className="flex flex-col items-center hover:text-cyan-400 transition-colors group">
-                      <div className="p-2 bg-white/5 rounded-full group-hover:bg-purple-500/20 transition-colors w-9 h-9 flex items-center justify-center relative">{db && <span className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 border-2 border-[#1A0B2E] rounded-full"></span>}<i className="fas fa-user-shield text-white group-hover:text-cyan-400"></i></div>
-                      <span className="text-[10px] tracking-wider uppercase hidden sm:block mt-1 text-slate-300 group-hover:text-cyan-400">Admin</span>
+
+                  <div className="flex items-center gap-3 sm:gap-6 flex-1 justify-end">
+                    {/* BAR PENCARIAN USER */}
+                    <div className="relative group flex-1 max-w-[200px] sm:max-w-xs">
+                      <div className="flex items-center bg-white/5 rounded-full border border-white/10 px-3 py-1.5 sm:px-4 sm:py-2 w-full focus-within:bg-[#0D0518] focus-within:border-cyan-400 transition-all duration-300">
+                        <i className="fas fa-search text-slate-400 text-[10px] sm:text-xs mr-2 sm:mr-3 group-focus-within:text-cyan-400"></i>
+                        <input 
+                          type="text" 
+                          placeholder="Cari produk..." 
+                          value={searchQuery}
+                          onChange={(e) => {
+                            setSearchQuery(e.target.value);
+                            if(e.target.value !== '' && window.scrollY < 300) {
+                              document.getElementById('katalog-produk')?.scrollIntoView({ behavior: 'smooth' });
+                            }
+                          }}
+                          className="bg-transparent border-none outline-none text-[10px] sm:text-xs text-white w-full placeholder-slate-400/70"
+                        />
+                        {searchQuery && (
+                          <button onClick={() => setSearchQuery('')} className="text-slate-400 hover:text-red-400 ml-1 sm:ml-2 transition-colors flex-shrink-0">
+                            <i className="fas fa-times text-[10px] sm:text-xs"></i>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <button onClick={() => { isAuthenticated ? setView('admin') : setView('login') }} className="flex flex-col items-center hover:text-cyan-400 transition-colors group flex-shrink-0">
+                      <div className="p-1.5 sm:p-2 bg-white/5 rounded-full group-hover:bg-purple-500/20 transition-colors w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center relative">{db && <span className="absolute -top-1 -right-1 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-green-400 border-2 border-[#1A0B2E] rounded-full"></span>}<i className="fas fa-user-shield text-white group-hover:text-cyan-400 text-sm sm:text-base"></i></div>
+                      <span className="text-[9px] sm:text-[10px] tracking-wider uppercase hidden sm:block mt-1 text-slate-300 group-hover:text-cyan-400">Admin</span>
                     </button>
                   </div>
+
                 </div>
               </div>
             </header>
 
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12">
-              <section className="relative rounded-3xl overflow-hidden shadow-[0_20px_50px_-12px_rgba(26,11,46,0.5)] h-56 sm:h-[400px] w-full flex items-center justify-center bg-gradient-to-br from-[#0D0518] via-[#1A0B2E] to-[#2D1650] text-white group" style={bannerInfo.backgroundImage ? { backgroundImage: `url(${bannerInfo.backgroundImage})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}>
-                {bannerInfo.backgroundImage && <div className="absolute inset-0 bg-[#0D0518]/70 mix-blend-multiply z-0"></div>}
-                <div className="absolute top-0 left-1/4 w-64 h-64 bg-cyan-500/20 rounded-full blur-[80px] mix-blend-screen group-hover:scale-150 transition-transform duration-1000 z-0"></div>
-                <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-purple-600/30 rounded-full blur-[80px] mix-blend-screen group-hover:scale-150 transition-transform duration-1000 delay-100 z-0"></div>
-                <div className="relative z-10 text-center px-6 flex flex-col items-center">
-                  {bannerInfo.badge && <button onClick={scrollToKatalog} className="inline-block border border-purple-500/50 text-cyan-400 hover:bg-purple-500/20 hover:text-white hover:scale-105 transition-all duration-300 text-xs px-4 py-1.5 mb-6 rounded-full tracking-widest uppercase bg-white/5 backdrop-blur-md shadow-lg">{bannerInfo.badge}</button>}
-                  <h1 className="text-4xl sm:text-7xl font-black mb-4 tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-white to-purple-300 drop-shadow-sm">{bannerInfo.title}</h1>
-                  <p className="text-sm sm:text-xl text-purple-200/80 font-light mb-8 tracking-wide max-w-xl whitespace-pre-wrap">{bannerInfo.subtitle}</p>
-                  <button onClick={scrollToKatalog} className="bg-gradient-to-r from-cyan-400 to-purple-500 text-white font-bold py-3 px-8 rounded-full transition-all duration-300 shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:shadow-[0_0_30px_rgba(34,211,238,0.6)] hover:scale-105 flex items-center gap-2 uppercase tracking-widest text-sm">{bannerInfo.buttonText} <i className="fas fa-arrow-right ml-1"></i></button>
-                </div>
-              </section>
+              
+              {/* CURRENT BANNER RENDER (AUTO SLIDE) */}
+              {(() => {
+                const currentBanner = banners[currentBannerIndex] || banners[0] || {};
+                return (
+                  <section className="relative rounded-3xl overflow-hidden shadow-[0_20px_50px_-12px_rgba(26,11,46,0.5)] h-64 sm:h-[450px] w-full flex items-center justify-center bg-gradient-to-br from-[#0D0518] via-[#1A0B2E] to-[#2D1650] text-white group" style={currentBanner.backgroundImage ? { backgroundImage: `url(${currentBanner.backgroundImage})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}>
+                    {currentBanner.backgroundImage && <div className="absolute inset-0 bg-[#0D0518]/70 mix-blend-multiply z-0"></div>}
+                    {!currentBanner.backgroundImage && (
+                      <React.Fragment>
+                        <div className="absolute top-0 left-1/4 w-64 h-64 bg-cyan-500/20 rounded-full blur-[80px] mix-blend-screen group-hover:scale-150 transition-transform duration-1000 z-0"></div>
+                        <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-purple-600/30 rounded-full blur-[80px] mix-blend-screen group-hover:scale-150 transition-transform duration-1000 delay-100 z-0"></div>
+                      </React.Fragment>
+                    )}
+                    
+                    <div key={currentBanner.id} className="relative z-10 text-center px-6 flex flex-col items-center animate-fade-in w-full">
+                      {currentBanner.badge && <button onClick={scrollToKatalog} className="inline-block border border-purple-500/50 text-cyan-400 hover:bg-purple-500/20 hover:text-white hover:scale-105 transition-all duration-300 text-xs px-4 py-1.5 mb-6 rounded-full tracking-widest uppercase bg-white/5 backdrop-blur-md shadow-lg">{currentBanner.badge}</button>}
+                      <h1 className="text-4xl sm:text-7xl font-black mb-4 tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-white to-purple-300 drop-shadow-sm">{currentBanner.title}</h1>
+                      <p className="text-sm sm:text-xl text-purple-200/80 font-light mb-8 tracking-wide max-w-xl whitespace-pre-wrap">{currentBanner.subtitle}</p>
+                      {currentBanner.buttonText && <button onClick={scrollToKatalog} className="bg-gradient-to-r from-cyan-400 to-purple-500 text-white font-bold py-3 px-8 rounded-full transition-all duration-300 shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:shadow-[0_0_30px_rgba(34,211,238,0.6)] hover:scale-105 flex items-center gap-2 uppercase tracking-widest text-sm">{currentBanner.buttonText} <i className="fas fa-arrow-right ml-1"></i></button>}
+                    </div>
 
-              <section className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
-                {[ { icon: 'fa-shield-alt', title: 'Garansi Resmi', desc: '100% Original' }, { icon: 'fa-truck', title: 'Gratis Ongkir', desc: 'Aman & Cepat' }, { icon: 'fa-desktop', title: 'Toko Offline', desc: 'Seluruh Indonesia' }, { icon: 'fa-headphones', title: 'Layanan 24/7', desc: 'Teknisi Handal' } ].map((feat, i) => (
+                    {/* Dots Indicator */}
+                    {banners.length > 1 && (
+                      <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-2 z-20">
+                        {banners.map((_, idx) => (
+                          <button key={idx} onClick={() => setCurrentBannerIndex(idx)} className={`transition-all duration-300 rounded-full ${currentBannerIndex === idx ? 'w-8 h-2 bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.8)]' : 'w-2 h-2 bg-white/30 hover:bg-white/50'}`}></button>
+                        ))}
+                      </div>
+                    )}
+                  </section>
+                );
+              })()}
+
+              <section className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+                {[ { icon: 'fa-shield-alt', title: 'Garansi Resmi', desc: '100% Original' }, { icon: 'fa-truck', title: 'Gratis Ongkir', desc: 'Aman & Cepat' }, { icon: 'fa-headphones', title: 'Layanan 24/7', desc: 'Teknisi Handal' } ].map((feat, i) => (
                   <div key={i} className="bg-white p-6 rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-purple-300 transition-all duration-300 flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-4 border border-slate-100 group cursor-default">
                     <div className="bg-purple-50 text-[#1A0B2E] w-12 h-12 flex items-center justify-center rounded-full group-hover:bg-gradient-to-br group-hover:from-cyan-400 group-hover:to-purple-500 group-hover:text-white group-hover:shadow-[0_0_15px_rgba(168,85,247,0.4)] transition-all duration-300"><i className={`fas ${feat.icon} text-xl`}></i></div>
                     <div><h3 className="font-bold text-sm text-[#1A0B2E] tracking-wide uppercase mb-1">{feat.title}</h3><p className="text-xs text-slate-500">{feat.desc}</p></div>
@@ -528,9 +743,9 @@
               </section>
 
               <section id="katalog-produk">
-                <div className="flex mb-8">
-                  <div className="flex gap-3 overflow-x-auto pb-2 sm:pb-0 scrollbar-hide w-full">
-                    {categories.map(cat => <button key={cat} onClick={() => setActiveCategory(cat)} className={`px-6 py-2.5 rounded-full text-xs font-bold tracking-wider uppercase whitespace-nowrap transition-all duration-300 ${activeCategory === cat ? 'bg-gradient-to-r from-cyan-500 to-purple-600 text-white shadow-[0_4px_15px_rgba(168,85,247,0.3)] scale-105' : 'bg-white text-slate-500 border border-slate-200 hover:border-purple-400 hover:text-[#1A0B2E]'}`}>{cat}</button>)}
+                <div className="flex mb-6">
+                  <div className="flex gap-4 overflow-x-auto py-4 px-2 -mx-2 scrollbar-hide w-full items-center">
+                    {categories.map(cat => <button key={cat} onClick={() => setActiveCategory(cat)} className={`px-6 py-2.5 rounded-full text-xs font-bold tracking-wider uppercase whitespace-nowrap transition-all duration-300 flex-shrink-0 ${activeCategory === cat ? 'bg-gradient-to-r from-cyan-500 to-purple-600 text-white shadow-[0_4px_15px_rgba(168,85,247,0.3)] scale-105' : 'bg-white text-slate-500 border border-slate-200 hover:border-purple-400 hover:text-[#1A0B2E]'}`}>{cat}</button>)}
                   </div>
                 </div>
 
@@ -603,6 +818,3 @@
   </script>
 </body>
 </html>
-```eof
-
-Tunggu sekitar 1 menit setelah di-*upload* ke Vercel. Selamat menikmati sistem kasir dan katalog canggihmu!
