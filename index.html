@@ -11,6 +11,18 @@
   <!-- FontAwesome untuk Ikon -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   
+  <!-- Firebase SDK Modular (TANPA STORAGE, MURNI DATABASE GRATIS) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
+    import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+
+    window.FirebaseContext = {
+      initializeApp, getAuth, onAuthStateChanged, signInWithCustomToken, signInAnonymously,
+      getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc
+    };
+  </script>
+
   <!-- React & Babel -->
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
@@ -19,329 +31,578 @@
   <style>
     .scrollbar-hide::-webkit-scrollbar { display: none; }
     .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-    .shimmer { animation: shimmer 2s infinite linear; }
-    @keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
   </style>
 </head>
-<body class="bg-[#F4F7FB] selection:bg-cyan-400 selection:text-[#002345]">
+<body class="bg-[#F7F5FA] selection:bg-purple-500 selection:text-white">
   <div id="root"></div>
 
   <script type="text/babel">
-    const { useState, useEffect } = React;
+    const initApp = () => {
+      if (!window.FirebaseContext) {
+        setTimeout(initApp, 100);
+        return;
+      }
 
-    // --- DATA PRODUK LENGKAP ---
-    const BRANDS = ['ASUS', 'ACER', 'LENOVO', 'HP', 'APPLE', 'MSI', 'LOGITECH', 'RAZER'];
-    
-    const PRODUCTS = [
-      { id: 1, name: 'ASUS ROG Zephyrus G14 (2024) - Ryzen 9, RTX 4060', price: 25999000, originalPrice: 28999000, category: 'Laptop', brand: 'ASUS', image: 'https://placehold.co/400x300/ffffff/002345?text=ASUS+ROG', rating: 4.9, badge: 'Save 10%' },
-      { id: 2, name: 'Lenovo Legion Pro 5i - Intel i7 Gen 13, RTX 4070', price: 28500000, originalPrice: 30000000, category: 'Laptop', brand: 'LENOVO', image: 'https://placehold.co/400x300/ffffff/002345?text=Lenovo+Legion', rating: 4.8, badge: 'Best Seller' },
-      { id: 3, name: 'MacBook Air M2 13-inch 8GB/256GB - Midnight', price: 17499000, originalPrice: 18999000, category: 'Laptop', brand: 'APPLE', image: 'https://placehold.co/400x300/ffffff/002345?text=MacBook+Air', rating: 5.0, badge: 'Promo' },
-      { id: 4, name: 'Logitech G Pro X Superlight Wireless Gaming Mouse', price: 1850000, originalPrice: 2100000, category: 'Aksesoris', brand: 'LOGITECH', image: 'https://placehold.co/400x300/ffffff/002345?text=Logitech+G+Pro', rating: 4.9, badge: '' },
-      { id: 5, name: 'Monitor Gaming Acer Nitro 24" 165Hz IPS Panel', price: 2100000, originalPrice: 2500000, category: 'Monitor', brand: 'ACER', image: 'https://placehold.co/400x300/ffffff/002345?text=Acer+Nitro', rating: 4.7, badge: 'Hot Item' },
-      { id: 6, name: 'HP Victus 15 - Ryzen 5 7535HS, RTX 2050', price: 10999000, originalPrice: 12500000, category: 'Laptop', brand: 'HP', image: 'https://placehold.co/400x300/ffffff/002345?text=HP+Victus', rating: 4.6, badge: 'Save 12%' },
-      { id: 7, name: 'MSI Katana 15 - i7 12650H, RTX 4050', price: 15499000, originalPrice: 16999000, category: 'Laptop', brand: 'MSI', image: 'https://placehold.co/400x300/ffffff/002345?text=MSI+Katana', rating: 4.8, badge: '' },
-      { id: 8, name: 'Keyboard Mechanical Keychron K2 V2 Wireless', price: 1450000, originalPrice: 1600000, category: 'Aksesoris', brand: 'KEYCHRON', image: 'https://placehold.co/400x300/ffffff/002345?text=Keychron+K2', rating: 4.9, badge: 'Popular' }
-    ];
+      const { useState, useEffect } = React;
+      const { 
+        initializeApp, getAuth, onAuthStateChanged, signInWithCustomToken, signInAnonymously, 
+        getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc
+      } = window.FirebaseContext;
 
-    const formatRupiah = (number) => {
-      return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number);
-    };
+      // ==========================================
+      // KONFIGURASI DATABASE FIREBASE (Katalog STM)
+      // ==========================================
+      let firebaseConfig = {
+        apiKey: "AIzaSyCGbJigJENF9b2RkhCy3xxaN3yBHKaxeAs",
+        authDomain: "katalogstm.firebaseapp.com",
+        projectId: "katalogstm",
+        storageBucket: "katalogstm.firebasestorage.app",
+        messagingSenderId: "887691629784",
+        appId: "1:887691629784:web:a83ffb8f915a2d6bce33ad",
+        measurementId: "G-PLEDDH8618"
+      };
 
-    function App() {
-      const [searchQuery, setSearchQuery] = useState('');
-      const [activeCategory, setActiveCategory] = useState('Semua');
-      const [scrolled, setScrolled] = useState(false);
-      const [placeholderIndex, setPlaceholderIndex] = useState(0);
+      let appId = 'katalogstm'; // ID Project kamu
+      
+      let app, auth, db;
+      const isConfigValid = firebaseConfig.projectId && firebaseConfig.projectId !== "ISI_PROJECT_ID_DISINI";
+      
+      if (isConfigValid) {
+        app = initializeApp(firebaseConfig);
+        auth = getAuth(app);
+        db = getFirestore(app);
+      }
 
-      const categories = ['Semua', 'Laptop', 'Monitor', 'Aksesoris', 'Komponen PC'];
-      const placeholders = ["Cari Laptop Gaming...", "Cari Monitor 144Hz...", "Cari Mouse Wireless...", "Cari RTX 4060..."];
+      // Fungsi Pengompres Gambar agar masuk Database Gratis
+      const compressImage = (file) => {
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = () => {
+              const canvas = document.createElement('canvas');
+              const MAX_WIDTH = 800; // Kompres ukuran agar ringan
+              const scaleSize = MAX_WIDTH / img.width;
+              canvas.width = MAX_WIDTH;
+              canvas.height = img.height * scaleSize;
+              const ctx = canvas.getContext('2d');
+              ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+              resolve(canvas.toDataURL('image/jpeg', 0.6)); // Kualitas 60%
+            }
+          };
+        });
+      };
 
-      useEffect(() => {
-        const interval = setInterval(() => {
-          setPlaceholderIndex((prev) => (prev + 1) % placeholders.length);
-        }, 3000);
-        return () => clearInterval(interval);
-      }, []);
+      const BRANDS_INITIAL = ['ASUS', 'ACER', 'LENOVO', 'HP', 'APPLE', 'MSI', 'LOGITECH', 'RAZER'];
+      const INITIAL_PRODUCTS = [
+        { id: 1, name: 'ASUS ROG Zephyrus G14 (2024) - Ryzen 9, RTX 4060', price: 25999000, originalPrice: 28999000, category: 'Laptop', brand: 'ASUS', image: 'https://placehold.co/400x300/ffffff/1A0B2E?text=ASUS+ROG', rating: 4.9, badge: 'Save 10%', stock: 5 },
+        { id: 2, name: 'Lenovo Legion Pro 5i - Intel i7 Gen 13, RTX 4070', price: 28500000, originalPrice: 30000000, category: 'Laptop', brand: 'LENOVO', image: 'https://placehold.co/400x300/ffffff/1A0B2E?text=Lenovo+Legion', rating: 4.8, badge: 'Best Seller', stock: 3 }
+      ];
 
-      useEffect(() => {
-        const handleScroll = () => setScrolled(window.scrollY > 20);
-        window.addEventListener('scroll', handleScroll);
-        return () => window.removeEventListener('scroll', handleScroll);
-      }, []);
+      const formatRupiah = (number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number);
 
-      const filteredProducts = PRODUCTS.filter(product => {
-        const matchesCategory = activeCategory === 'Semua' || product.category === activeCategory;
-        const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
-        return matchesCategory && matchesSearch;
-      });
+      function App() {
+        const [activeCategory, setActiveCategory] = useState('Semua');
+        const [scrolled, setScrolled] = useState(false);
+        const [dbUser, setDbUser] = useState(null);
+        
+        const [view, setView] = useState('catalog');
+        const [isAuthenticated, setIsAuthenticated] = useState(false);
+        const [loginData, setLoginData] = useState({ username: '', password: '' });
+        const [loginError, setLoginError] = useState('');
 
-      return (
-        <div className="font-sans text-gray-800 relative">
+        const [products, setProducts] = useState(INITIAL_PRODUCTS);
+        const [categories, setCategories] = useState(['Semua', 'Laptop', 'Monitor', 'Aksesoris', 'Komponen PC']);
+        const [brandsList, setBrandsList] = useState(BRANDS_INITIAL);
+        const [bannerInfo, setBannerInfo] = useState({
+          badge: 'Katalog Eksklusif 2026',
+          title: 'SUPER GAMING WEEK',
+          subtitle: 'Tingkatkan pengalaman digital Anda dengan teknologi masa depan yang tersedia hari ini.',
+          buttonText: 'Eksplorasi Sekarang',
+          backgroundImage: '',
+          imageFile: null,
+          imagePreview: null
+        });
+        
+        const [newProduct, setNewProduct] = useState({
+          name: '', price: '', originalPrice: '', category: 'Laptop', brand: 'ASUS', badge: '', image: '', imageFile: null, imagePreview: null, stock: ''
+        });
+        const [isEditing, setIsEditing] = useState(false);
+        const [editId, setEditId] = useState(null);
+        const [newCustomCategory, setNewCustomCategory] = useState('');
+        const [newCustomBrand, setNewCustomBrand] = useState('');
+        const [isUploading, setIsUploading] = useState(false);
+
+        const [adminTab, setAdminTab] = useState('dashboard');
+        const [adminSearchQuery, setAdminSearchQuery] = useState('');
+        const [adminCategoryFilter, setAdminCategoryFilter] = useState('Semua');
+
+        useEffect(() => {
+          if (!auth) return;
+          const initAuth = async () => {
+            try { await signInAnonymously(auth); } catch(e) { console.error(e) }
+          };
+          initAuth();
+          const unsubscribe = onAuthStateChanged(auth, setDbUser);
+          return () => unsubscribe();
+        }, []);
+
+        useEffect(() => {
+          if (!dbUser || !db) return;
+
+          const productsRef = collection(db, 'artifacts', appId, 'public', 'data', 'products');
+          const unsubProducts = onSnapshot(productsRef, (snap) => {
+            if (!snap.empty) {
+              const prods = snap.docs.map(doc => ({id: Number(doc.id), ...doc.data()}));
+              setProducts(prods.sort((a,b) => b.id - a.id));
+            }
+          });
+
+          const settingsRef = collection(db, 'artifacts', appId, 'public', 'data', 'settings');
+          const unsubSettings = onSnapshot(settingsRef, (snap) => {
+            snap.docs.forEach(docSnap => {
+              if (docSnap.id === 'catalogSettings') {
+                const data = docSnap.data();
+                if(data.bannerInfo) setBannerInfo(prev => ({...prev, ...data.bannerInfo, imageFile: null, imagePreview: data.bannerInfo.backgroundImage}));
+                if(data.categories) setCategories(data.categories);
+                if(data.brandsList) setBrandsList(data.brandsList);
+              }
+            });
+          });
+
+          return () => { unsubProducts(); unsubSettings(); };
+        }, [dbUser]);
+
+        useEffect(() => {
+          const handleScroll = () => setScrolled(window.scrollY > 20);
+          window.addEventListener('scroll', handleScroll);
+          return () => window.removeEventListener('scroll', handleScroll);
+        }, []);
+
+        const filteredProducts = products.filter(product => activeCategory === 'Semua' || product.category === activeCategory);
+        const filteredAdminProducts = products.filter(product => {
+          const matchesSearch = product.name.toLowerCase().includes(adminSearchQuery.toLowerCase());
+          const matchesCategory = adminCategoryFilter === 'Semua' || product.category === adminCategoryFilter;
+          return matchesSearch && matchesCategory;
+        });
+
+        const scrollToKatalog = () => document.getElementById('katalog-produk')?.scrollIntoView({ behavior: 'smooth' });
+
+        const handleLogin = (e) => {
+          e.preventDefault();
+          if (loginData.username === 'STM' && loginData.password === 'STM123') {
+            setIsAuthenticated(true); setView('admin'); setLoginError(''); setLoginData({ username: '', password: '' });
+          } else {
+            setLoginError('Username atau Password tidak valid!');
+          }
+        };
+
+        const handleExportCSV = () => {
+          const headers = ['ID Produk', 'Nama Produk', 'Kategori', 'Merek', 'Harga (Rp)', 'Stok'];
+          const dataToExport = adminCategoryFilter === 'Semua' ? products : products.filter(p => p.category === adminCategoryFilter);
+          const rows = dataToExport.map(p => [p.id, `"${p.name.replace(/"/g, '""')}"`, `"${p.category}"`, `"${p.brand}"`, p.price, p.stock]);
+          const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows.map(e => e.join(','))].join("\n");
+          const encodedUri = encodeURI(csvContent);
+          const link = document.createElement("a");
+          link.setAttribute("href", encodedUri);
+          link.setAttribute("download", `Laporan_Stok_${adminCategoryFilter}_${new Date().toISOString().split('T')[0]}.csv`);
+          document.body.appendChild(link); link.click(); document.body.removeChild(link);
+        };
+
+        // MENGGUNAKAN BASE64 FIRESTORE (GRATIS & REALTIME)
+        const handleSaveProduct = async () => {
+          if (!newProduct.name || !newProduct.price) return;
+          setIsUploading(true);
           
-          {/* FLOATING CHAT BUTTON */}
-          <button className="fixed bottom-6 right-6 z-50 bg-cyan-500 text-[#002345] p-4 rounded-full shadow-[0_8px_30px_rgb(0,243,255,0.4)] hover:bg-cyan-400 hover:scale-110 transition-all duration-300 group flex items-center justify-center w-14 h-14">
-            <i className="fas fa-comment-dots text-2xl animate-pulse"></i>
-            <span className="absolute right-full mr-4 top-1/2 -translate-y-1/2 bg-[#002345] text-white text-xs px-3 py-2 rounded-xl whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none shadow-xl">
-              Tanya Sales Kami
-            </span>
-          </button>
+          let finalCategory = newProduct.category === 'NEW_CATEGORY' && newCustomCategory ? newCustomCategory : newProduct.category;
+          let finalBrand = newProduct.brand === 'NEW_BRAND' && newCustomBrand ? newCustomBrand.toUpperCase() : newProduct.brand;
+          let newCats = [...categories]; if (!newCats.includes(finalCategory)) newCats.push(finalCategory);
+          let newBrands = [...brandsList]; if (!newBrands.includes(finalBrand)) newBrands.push(finalBrand);
 
-          {/* TOP HEADER */}
-          <div className="bg-gradient-to-r from-[#001122] via-[#002345] to-[#001122] text-cyan-400 text-xs py-2 px-4 flex justify-center border-b border-cyan-500/10 tracking-wide relative overflow-hidden">
-            <div className="absolute inset-0 bg-white/5 opacity-50 shimmer"></div>
-            <span className="font-bold tracking-widest relative z-10 flex items-center gap-2">
-              <i className="fas fa-bolt text-yellow-400"></i> KATALOG PRODUK RESMI BERGARANSI
-            </span>
-          </div>
+          let imageUrl = newProduct.image || 'https://placehold.co/400x300/ffffff/1A0B2E?text=No+Image';
 
-          {/* MAIN HEADER (Sticky & Glass) */}
-          <header className={`sticky top-0 z-40 transition-all duration-300 ${scrolled ? 'bg-[#002345]/90 backdrop-blur-lg shadow-lg py-2' : 'bg-[#002345] py-4'} border-b border-white/5`}>
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="flex items-center justify-between gap-6">
-                
-                {/* Logo */}
-                <div className="flex items-center gap-3 cursor-pointer group">
-                  <i className="fas fa-bars sm:hidden text-cyan-400 text-xl"></i>
-                  <img 
-                    src="https://drive.google.com/thumbnail?id=1WLxFwy421QxxzZ4vfwfozlWSUT1qMZgr&sz=w800" 
-                    alt="SMART TECHNOLOGY MANDIRI" 
-                    onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/400x100/002345/00f3ff?text=SMART+TECH'; }}
-                    className="h-10 sm:h-12 object-contain group-hover:scale-105 transition-transform duration-300 drop-shadow-[0_0_8px_rgba(0,243,255,0.5)]"
-                  />
-                </div>
+          try {
+            // Kompresi Gambar menjadi Base64 (Bebas Biaya)
+            if (newProduct.imageFile) {
+              imageUrl = await compressImage(newProduct.imageFile);
+            }
 
-                {/* Search Bar */}
-                <div className="flex-1 max-w-2xl hidden sm:flex">
-                  <div className="relative w-full group">
-                    <input 
-                      type="text" 
-                      placeholder={placeholders[placeholderIndex]} 
-                      className="w-full bg-[#001830]/80 text-white placeholder-slate-400/70 border border-[#003366] rounded-full py-3 pl-6 pr-14 focus:outline-none focus:border-cyan-400 focus:bg-[#001a33] focus:ring-4 focus:ring-cyan-500/20 transition-all duration-300"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                    <button className="absolute right-2 top-2 bottom-2 bg-gradient-to-r from-cyan-500 to-cyan-400 text-[#002345] w-10 rounded-full hover:shadow-[0_0_15px_rgba(0,243,255,0.4)] hover:scale-105 transition-all duration-300 flex items-center justify-center">
-                      <i className="fas fa-search"></i>
-                    </button>
-                  </div>
-                </div>
+            const productData = {
+              name: newProduct.name, badge: newProduct.badge, category: finalCategory, brand: finalBrand,
+              price: Number(newProduct.price), originalPrice: newProduct.originalPrice ? Number(newProduct.originalPrice) : Number(newProduct.price),
+              stock: Number(newProduct.stock) || 0, image: imageUrl, rating: newProduct.rating || 5.0
+            };
 
-                {/* Icons */}
-                <div className="flex items-center gap-6">
-                  <button className="flex flex-col items-center hover:text-cyan-400 transition-colors group">
-                    <div className="p-2 bg-white/5 rounded-full group-hover:bg-cyan-500/10 transition-colors w-9 h-9 flex items-center justify-center">
-                      <i className="fas fa-user-shield text-white group-hover:text-cyan-400"></i>
-                    </div>
-                    <span className="text-[10px] tracking-wider uppercase hidden sm:block mt-1 text-slate-300 group-hover:text-cyan-400">Admin</span>
-                  </button>
-                </div>
+            const saveId = isEditing ? editId : Date.now();
+            productData.id = saveId;
 
-              </div>
-            </div>
+            if (db) {
+              await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'products', String(saveId)), productData);
+              await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'catalogSettings'), { categories: newCats, brandsList: newBrands }, { merge: true });
+            } else {
+              if (isEditing) setProducts(products.map(p => p.id === saveId ? productData : p));
+              else setProducts([productData, ...products]);
+              setCategories(newCats); setBrandsList(newBrands);
+            }
             
-            {/* Nav Desktop */}
-            <div className={`hidden md:block overflow-hidden transition-all duration-300 ${scrolled ? 'h-0 opacity-0' : 'h-12 opacity-100'}`}>
-              <div className="max-w-7xl mx-auto px-8 flex items-center gap-8 py-3 text-xs font-semibold tracking-wider uppercase">
-                <button className="flex items-center gap-2 text-cyan-400 hover:text-white transition-colors">
-                  <i className="fas fa-bars"></i> Kategori Produk
-                </button>
-                <div className="w-px h-4 bg-[#003366]"></div>
-                {categories.slice(1).map(cat => (
-                  <button key={cat} className="text-slate-300 hover:text-cyan-400 transition-colors relative group">
-                    {cat}
-                    <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-cyan-400 group-hover:w-full transition-all duration-300"></span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </header>
+            setIsEditing(false); setEditId(null);
+            setNewProduct({ name: '', price: '', originalPrice: '', category: 'Laptop', brand: 'ASUS', badge: '', image: '', imageFile: null, imagePreview: null, stock: '' });
+            setNewCustomCategory(''); setNewCustomBrand('');
+          } catch (error) {
+            console.error(error); alert("Terjadi kesalahan sistem saat memproses gambar.");
+          } finally {
+            setIsUploading(false);
+          }
+        };
 
-          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12">
-            
-            {/* HERO BANNER */}
-            <section className="relative rounded-3xl overflow-hidden shadow-[0_20px_50px_-12px_rgba(0,35,69,0.3)] h-56 sm:h-[400px] w-full flex items-center justify-center bg-gradient-to-br from-[#001122] via-[#002345] to-[#001830] text-white group">
-              <div className="absolute top-0 left-1/4 w-64 h-64 bg-cyan-500/20 rounded-full blur-[80px] mix-blend-screen group-hover:scale-150 transition-transform duration-1000"></div>
-              <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-blue-600/20 rounded-full blur-[80px] mix-blend-screen group-hover:scale-150 transition-transform duration-1000 delay-100"></div>
-              
-              <div className="relative z-10 text-center px-6 flex flex-col items-center">
-                <div className="inline-block border border-cyan-500/30 text-cyan-400 text-xs px-4 py-1.5 mb-6 rounded-full tracking-widest uppercase bg-white/5 backdrop-blur-md shadow-lg">
-                  Katalog Eksklusif 2026
+        const handleDeleteProduct = async (id) => {
+          if(window.confirm("Yakin ingin menghapus produk ini?")) {
+            if (db) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'products', String(id)));
+            else setProducts(products.filter(p => p.id !== id));
+          }
+        };
+
+        const handleSaveBanner = async () => {
+          setIsUploading(true);
+          try {
+            let bgUrl = bannerInfo.backgroundImage;
+            if (bannerInfo.imageFile) {
+              bgUrl = await compressImage(bannerInfo.imageFile);
+            }
+
+            const finalBannerInfo = { badge: bannerInfo.badge, title: bannerInfo.title, subtitle: bannerInfo.subtitle, buttonText: bannerInfo.buttonText, backgroundImage: bgUrl };
+
+            if (db) {
+              await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'catalogSettings'), { bannerInfo: finalBannerInfo }, { merge: true });
+              alert("Banner berhasil diperbarui!");
+            } else {
+              setBannerInfo(prev => ({...prev, ...finalBannerInfo, imageFile: null, imagePreview: bgUrl}));
+            }
+          } catch (error) {
+            console.error(error); alert("Gagal memperbarui banner.");
+          } finally {
+            setIsUploading(false);
+          }
+        };
+
+        const handleEditProduct = (product) => {
+          setNewProduct({ name: product.name, price: product.price, originalPrice: product.originalPrice, category: product.category, brand: product.brand, badge: product.badge || '', image: product.image || '', imageFile: null, imagePreview: product.image || null, stock: product.stock || 0 });
+          setIsEditing(true); setEditId(product.id); setAdminTab('products'); window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
+        const handleCancelEdit = () => {
+          setIsEditing(false); setEditId(null);
+          setNewProduct({ name: '', price: '', originalPrice: '', category: 'Laptop', brand: 'ASUS', badge: '', image: '', imageFile: null, imagePreview: null, stock: '' });
+          setNewCustomCategory(''); setNewCustomBrand('');
+        };
+
+
+        if (view === 'login') {
+          return (
+            <div className="min-h-screen bg-[#0D0518] flex items-center justify-center p-4 font-sans text-slate-300 relative overflow-hidden">
+              <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-[100px] pointer-events-none"></div>
+              <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-600/20 rounded-full blur-[100px] pointer-events-none"></div>
+              <div className="bg-[#1A0B2E] p-8 sm:p-12 rounded-3xl border border-purple-500/20 shadow-[0_0_50px_rgba(26,11,46,0.8)] w-full max-w-md relative z-10 backdrop-blur-xl animate-fade-in">
+                <div className="text-center mb-8">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#0D0518] border border-cyan-500/30 text-cyan-400 mb-6 shadow-[0_0_15px_rgba(34,211,238,0.2)]"><i className="fas fa-lock text-2xl"></i></div>
+                  <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500 uppercase tracking-widest">Portal Admin</h2>
+                  <p className="text-xs text-purple-300/60 mt-2 tracking-wide">SMART TECHNOLOGY MANDIRI</p>
                 </div>
-                <h1 className="text-4xl sm:text-7xl font-black mb-4 tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-400 drop-shadow-sm">
-                  SUPER GAMING WEEK
-                </h1>
-                <p className="text-sm sm:text-xl text-cyan-200/80 font-light mb-8 tracking-wide max-w-xl">
-                  Tingkatkan pengalaman digital Anda dengan teknologi masa depan yang tersedia hari ini.
-                </p>
-                <button className="bg-cyan-500 text-[#002345] hover:bg-cyan-400 font-bold py-3 px-8 rounded-full transition-all duration-300 shadow-[0_0_20px_rgba(0,243,255,0.3)] hover:shadow-[0_0_30px_rgba(0,243,255,0.5)] flex items-center gap-2 uppercase tracking-widest text-sm">
-                  Eksplorasi Sekarang <i className="fas fa-arrow-right ml-1"></i>
-                </button>
-              </div>
-            </section>
-
-            {/* FEATURES */}
-            <section className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
-              {[
-                { icon: 'fa-shield-alt', title: 'Garansi Resmi', desc: '100% Original' },
-                { icon: 'fa-truck', title: 'Gratis Ongkir', desc: 'Aman & Cepat' },
-                { icon: 'fa-desktop', title: 'Toko Offline', desc: 'Seluruh Indonesia' },
-                { icon: 'fa-headphones', title: 'Layanan 24/7', desc: 'Teknisi Handal' },
-              ].map((feat, i) => (
-                <div key={i} className="bg-white p-6 rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-4 border border-slate-100 group cursor-default">
-                  <div className="bg-slate-50 text-[#002345] w-12 h-12 flex items-center justify-center rounded-full group-hover:bg-cyan-500 group-hover:text-[#002345] group-hover:shadow-[0_0_15px_rgba(0,243,255,0.3)] transition-all duration-300">
-                    <i className={`fas ${feat.icon} text-xl`}></i>
+                {loginError && <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-xs px-4 py-3 rounded-xl mb-6 flex items-center gap-3"><i className="fas fa-exclamation-triangle"></i> {loginError}</div>}
+                <form onSubmit={handleLogin} className="space-y-5">
+                  <div>
+                    <label className="block text-[10px] uppercase tracking-widest mb-2 text-purple-300 font-bold">Username</label>
+                    <div className="relative"><i className="fas fa-user absolute left-4 top-3.5 text-purple-400/50"></i><input type="text" value={loginData.username} onChange={e => setLoginData({...loginData, username: e.target.value})} className="w-full bg-[#0D0518] border border-purple-500/30 rounded-xl px-4 py-3 pl-11 text-white focus:outline-none focus:border-cyan-400 transition-colors text-sm" placeholder="Masukkan username" /></div>
                   </div>
                   <div>
-                    <h3 className="font-bold text-sm text-[#002345] tracking-wide uppercase mb-1">{feat.title}</h3>
-                    <p className="text-xs text-slate-500">{feat.desc}</p>
+                    <label className="block text-[10px] uppercase tracking-widest mb-2 text-purple-300 font-bold">Password</label>
+                    <div className="relative"><i className="fas fa-key absolute left-4 top-3.5 text-purple-400/50"></i><input type="password" value={loginData.password} onChange={e => setLoginData({...loginData, password: e.target.value})} className="w-full bg-[#0D0518] border border-purple-500/30 rounded-xl px-4 py-3 pl-11 text-white focus:outline-none focus:border-cyan-400 transition-colors text-sm" placeholder="Masukkan password" /></div>
+                  </div>
+                  <button type="submit" className="w-full bg-gradient-to-r from-cyan-400 to-purple-500 text-white font-bold rounded-xl px-4 py-3 hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(168,85,247,0.4)] transition-all flex justify-center items-center gap-2 uppercase tracking-widest text-xs mt-8">Masuk Sistem <i className="fas fa-sign-in-alt"></i></button>
+                </form>
+                <button onClick={() => { setView('catalog'); setLoginError(''); setLoginData({username:'', password:''}); }} className="w-full mt-6 bg-transparent text-purple-400/70 hover:text-cyan-400 font-bold rounded-xl px-4 py-2 transition-colors flex justify-center items-center gap-2 uppercase tracking-widest text-[10px]"><i className="fas fa-arrow-left"></i> Kembali ke Katalog Utama</button>
+              </div>
+            </div>
+          );
+        }
+
+        if (view === 'admin') {
+          return (
+            <div className="min-h-screen bg-[#0D0518] text-slate-300 p-4 sm:p-8 font-sans">
+              <div className="max-w-6xl mx-auto space-y-6">
+                
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-purple-500/20 pb-6">
+                  <div>
+                    <h1 className="text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500">Admin Dashboard</h1>
+                    <p className="text-sm mt-1 text-purple-300/70">Sistem Manajemen Katalog & Stok Pintar {db ? <span className="text-green-400 font-bold ml-2"><i className="fas fa-wifi"></i> Online (Tersimpan)</span> : <span className="text-red-400 font-bold ml-2"><i className="fas fa-exclamation-circle"></i> Offline Vercel (Butuh API Key)</span>}</p>
+                  </div>
+                  <div className="flex items-center gap-3 w-full sm:w-auto">
+                    <button onClick={() => setView('catalog')} className="flex-1 sm:flex-none bg-white/5 hover:bg-white/10 text-white px-6 py-2.5 rounded-full border border-purple-500/30 transition-all text-[10px] sm:text-xs font-bold tracking-widest flex items-center justify-center gap-2"><i className="fas fa-eye"></i> LIHAT KATALOG</button>
+                    <button onClick={() => { setIsAuthenticated(false); setView('catalog'); }} className="bg-red-500/10 hover:bg-red-500/20 text-red-400 px-6 py-2.5 rounded-full border border-red-500/30 transition-all text-[10px] sm:text-xs font-bold tracking-widest flex items-center gap-2"><i className="fas fa-power-off"></i> LOGOUT</button>
                   </div>
                 </div>
-              ))}
-            </section>
 
-            {/* PRODUCT SECTION */}
-            <section>
-              <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-6">
-                <h2 className="text-2xl sm:text-3xl font-black text-[#002345] flex items-center gap-3 tracking-tight">
-                  <i className="fas fa-microchip text-cyan-500 drop-shadow-sm text-3xl"></i>
-                  KATALOG <span className="text-slate-400 font-light">PRODUK</span>
-                </h2>
-
-                <div className="flex gap-3 overflow-x-auto pb-2 sm:pb-0 scrollbar-hide">
-                  {categories.map(cat => (
-                    <button 
-                      key={cat}
-                      onClick={() => setActiveCategory(cat)}
-                      className={`px-6 py-2.5 rounded-full text-xs font-bold tracking-wider uppercase whitespace-nowrap transition-all duration-300 ${
-                        activeCategory === cat 
-                          ? 'bg-[#002345] text-cyan-400 shadow-[0_4px_15px_rgba(0,35,69,0.2)] scale-105' 
-                          : 'bg-white text-slate-500 border border-slate-200 hover:border-cyan-400 hover:text-[#002345]'
-                      }`}
-                    >
-                      {cat}
-                    </button>
-                  ))}
+                <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2">
+                  <button onClick={() => setAdminTab('dashboard')} className={`px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-2 ${adminTab === 'dashboard' ? 'bg-gradient-to-r from-cyan-400 to-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]' : 'bg-[#1A0B2E] text-slate-400 hover:text-white border border-purple-500/20'}`}><i className="fas fa-chart-pie"></i> Ringkasan</button>
+                  <button onClick={() => setAdminTab('products')} className={`px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-2 ${adminTab === 'products' ? 'bg-gradient-to-r from-cyan-400 to-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]' : 'bg-[#1A0B2E] text-slate-400 hover:text-white border border-purple-500/20'}`}><i className="fas fa-box"></i> Kelola Produk</button>
+                  <button onClick={() => setAdminTab('banner')} className={`px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-2 ${adminTab === 'banner' ? 'bg-gradient-to-r from-cyan-400 to-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]' : 'bg-[#1A0B2E] text-slate-400 hover:text-white border border-purple-500/20'}`}><i className="fas fa-image"></i> Edit Banner</button>
                 </div>
-              </div>
 
-              {filteredProducts.length > 0 ? (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-8">
-                  {filteredProducts.map((product) => (
-                    <div key={product.id} className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-[0_15px_40px_-10px_rgba(0,243,255,0.2)] hover:-translate-y-2 hover:border-cyan-200 transition-all duration-500 group flex flex-col h-full relative cursor-pointer">
-                      
-                      <div className="relative aspect-[4/3] overflow-hidden bg-slate-50 p-6 flex items-center justify-center">
-                        {product.badge && (
-                          <span className="absolute top-4 left-4 bg-gradient-to-r from-[#002345] to-[#003366] text-cyan-400 text-[10px] font-bold px-3 py-1.5 rounded-full z-10 uppercase tracking-widest shadow-md">
-                            {product.badge}
-                          </span>
-                        )}
-                        <img src={product.image} className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-700 ease-out" />
+                {adminTab === 'dashboard' && (
+                  <div className="space-y-6 animate-fade-in">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="bg-[#1A0B2E] p-6 rounded-3xl border border-purple-500/20 relative overflow-hidden group"><i className="fas fa-box-open absolute -right-4 -bottom-4 text-6xl text-purple-500/10 group-hover:scale-110 transition-transform"></i><p className="text-purple-300 text-[10px] font-bold uppercase tracking-widest mb-2">Total SKU Produk</p><h3 className="text-3xl font-black text-white">{products.length}</h3></div>
+                      <div className="bg-[#1A0B2E] p-6 rounded-3xl border border-purple-500/20 relative overflow-hidden group"><i className="fas fa-layer-group absolute -right-4 -bottom-4 text-6xl text-cyan-500/10 group-hover:scale-110 transition-transform"></i><p className="text-purple-300 text-[10px] font-bold uppercase tracking-widest mb-2">Kategori Aktif</p><h3 className="text-3xl font-black text-white">{categories.length - 1}</h3></div>
+                      <div className="bg-[#1A0B2E] p-6 rounded-3xl border border-purple-500/20 relative overflow-hidden group"><i className="fas fa-cubes absolute -right-4 -bottom-4 text-6xl text-green-500/10 group-hover:scale-110 transition-transform"></i><p className="text-purple-300 text-[10px] font-bold uppercase tracking-widest mb-2">Total Fisik Barang</p><h3 className="text-3xl font-black text-green-400">{products.reduce((acc, p) => acc + (p.stock || 0), 0)}</h3></div>
+                      <div className="bg-[#1A0B2E] p-6 rounded-3xl border border-red-500/20 relative overflow-hidden shadow-[0_0_15px_rgba(239,68,68,0.05)] group"><i className="fas fa-exclamation-triangle absolute -right-4 -bottom-4 text-6xl text-red-500/10 group-hover:scale-110 transition-transform"></i><p className="text-red-300 text-[10px] font-bold uppercase tracking-widest mb-2">Stok Kosong</p><h3 className="text-3xl font-black text-red-400">{products.filter(p => p.stock === 0).length}</h3></div>
+                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                      <div className="lg:col-span-1 bg-[#1A0B2E] p-6 rounded-3xl border border-orange-500/30 shadow-[0_0_20px_rgba(249,115,22,0.05)]">
+                        <h2 className="text-sm font-bold text-orange-400 mb-6 flex items-center gap-2 uppercase tracking-widest"><i className="fas fa-bell"></i> Peringatan Stok Tipis</h2>
+                        <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 scrollbar-hide">
+                          {products.filter(p => p.stock === 0).map(p => (
+                             <div key={p.id} className="bg-[#0D0518] p-4 rounded-xl border border-red-500/30 flex justify-between items-center gap-3"><div className="flex-1"><p className="text-white text-xs font-semibold line-clamp-1">{p.name}</p><p className="text-red-400/70 text-[10px] mt-1 font-bold uppercase">{p.category}</p></div><span className="bg-red-500/20 text-red-400 font-black text-[10px] px-2 py-1.5 rounded flex-shrink-0">KOSONG</span></div>
+                          ))}
+                          {products.filter(p => p.stock > 0 && p.stock <= 3).map(p => (
+                              <div key={p.id} className="bg-[#0D0518] p-4 rounded-xl border border-orange-500/20 flex justify-between items-center gap-3"><div className="flex-1"><p className="text-white text-xs font-semibold line-clamp-1">{p.name}</p><p className="text-purple-400 text-[10px] mt-1 font-bold uppercase">{p.category}</p></div><span className="bg-orange-500/20 text-orange-400 font-black text-xs px-2 py-1 rounded flex-shrink-0">Sisa {p.stock}</span></div>
+                          ))}
+                          {products.filter(p => p.stock <= 3).length === 0 && <div className="text-center py-12 opacity-50"><i className="fas fa-check-circle text-4xl mb-3 text-green-400"></i><p className="text-xs">Semua stok produk aman</p></div>}
+                        </div>
                       </div>
-
-                      <div className="p-6 flex flex-col flex-grow bg-white z-20">
-                        <div className="text-[10px] text-cyan-600 tracking-widest uppercase mb-2 font-bold bg-cyan-50 inline-block px-2 py-1 rounded w-fit">{product.brand}</div>
-                        <h3 className="font-semibold text-[15px] text-[#002345] line-clamp-2 mb-4 group-hover:text-cyan-600 transition-colors leading-relaxed">
-                          {product.name}
-                        </h3>
-                        
-                        <div className="mt-auto pt-4">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-xs text-slate-400 line-through">{formatRupiah(product.originalPrice)}</span>
-                          </div>
-                          <div className="text-xl font-black text-[#002345] mb-4 tracking-tight group-hover:scale-105 origin-left transition-transform duration-300">
-                            {formatRupiah(product.price)}
-                          </div>
-                          
-                          <button className="w-full py-3 px-4 bg-slate-50 text-[#002345] border border-slate-200 text-xs font-bold uppercase tracking-widest rounded-xl hover:bg-[#002345] hover:border-[#002345] hover:text-cyan-400 transition-all duration-300 flex items-center justify-center gap-2">
-                            <i className="fas fa-comment-dots"></i> Tanya Stok
-                          </button>
+                      <div className="lg:col-span-2 bg-[#1A0B2E] p-6 rounded-3xl border border-purple-500/20 shadow-lg">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 border-b border-purple-500/20 pb-4">
+                          <h2 className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-widest"><i className="fas fa-table text-cyan-400"></i> Laporan Stok</h2>
+                          <div className="flex items-center gap-3 w-full sm:w-auto"><select value={adminCategoryFilter} onChange={e => setAdminCategoryFilter(e.target.value)} className="bg-[#0D0518] border border-purple-500/30 rounded-xl px-4 py-2 text-white text-xs focus:outline-none focus:border-cyan-400 flex-1 sm:flex-none">{categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}</select><button onClick={handleExportCSV} className="bg-green-500/20 hover:bg-green-500/40 border border-green-500/50 text-green-400 px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-colors"><i className="fas fa-file-excel"></i> Export CSV</button></div>
+                        </div>
+                        <div className="overflow-x-auto max-h-[400px] scrollbar-hide">
+                          <table className="w-full text-left border-collapse min-w-[600px]">
+                            <thead className="sticky top-0 bg-[#1A0B2E] z-10 shadow-sm"><tr className="border-b border-purple-500/30 text-purple-300 text-[10px] uppercase tracking-widest"><th className="p-4 font-bold w-1/2">Nama Produk</th><th className="p-4 font-bold">Kategori</th><th className="p-4 font-bold">Merek</th><th className="p-4 font-bold text-center">Stok</th></tr></thead>
+                            <tbody className="text-xs">
+                              {(adminCategoryFilter === 'Semua' ? products : products.filter(p => p.category === adminCategoryFilter)).map(p => (
+                                <tr key={p.id} className="border-b border-white/5 hover:bg-[#0D0518] transition-colors group"><td className="p-4 font-semibold text-white"><div className="line-clamp-1 group-hover:text-cyan-400 transition-colors" title={p.name}>{p.name}</div><div className="text-[10px] text-purple-400 mt-1">{formatRupiah(p.price)}</div></td><td className="p-4 text-purple-300 font-medium">{p.category}</td><td className="p-4 text-cyan-400 font-bold">{p.brand}</td><td className="p-4 text-center"><span className={`px-2 py-1 rounded font-black text-[10px] ${p.stock === 0 ? 'bg-red-500/20 text-red-400' : p.stock <= 3 ? 'bg-orange-500/20 text-orange-400' : 'bg-green-500/20 text-green-400'}`}>{p.stock}</span></td></tr>
+                              ))}
+                            </tbody>
+                          </table>
                         </div>
                       </div>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-24 bg-white rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center">
-                  <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mb-6">
-                    <i className="fas fa-desktop text-4xl text-slate-300"></i>
                   </div>
-                  <h3 className="text-xl font-bold text-[#002345] tracking-wide uppercase">Produk tidak ditemukan</h3>
-                </div>
-              )}
-            </section>
-          </main>
+                )}
 
-          {/* FOOTER */}
-          <footer className="bg-[#001122] text-slate-400 border-t border-cyan-500/10 pt-20 pb-8 mt-20 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-900/10 rounded-full blur-[100px] pointer-events-none"></div>
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
-                <div className="col-span-1 md:col-span-1">
-                  <img 
-                    src="https://drive.google.com/thumbnail?id=1WLxFwy421QxxzZ4vfwfozlWSUT1qMZgr&sz=w800" 
-                    alt="SMART TECHNOLOGY MANDIRI" 
-                    className="h-12 object-contain mb-6 drop-shadow-md brightness-0 invert opacity-90"
-                    onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/400x100/001122/ffffff?text=SMART+TECH'; }}
-                  />
-                  <p className="text-sm text-slate-500 leading-relaxed mb-6 font-light">
-                    Pusat informasi dan katalog pintar produk IT. Temukan inspirasi teknologi terbaik dengan panduan ahli dari kami.
-                  </p>
-                </div>
-                
-                <div>
-                  <h4 className="font-bold text-white tracking-widest uppercase text-xs mb-6">Pusat Bantuan</h4>
-                  <ul className="space-y-4 text-sm">
-                    {['Lokasi Cabang', 'Klaim Garansi', 'Hubungi Sales', 'Cek Ketersediaan'].map((item) => (
-                      <li key={item} className="hover:text-cyan-400 cursor-pointer transition-all duration-300 flex items-center gap-3 group">
-                        <div className="w-1.5 h-1.5 bg-cyan-900 rounded-full group-hover:bg-cyan-400 group-hover:scale-150 transition-all duration-300"></div> 
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div>
-                  <h4 className="font-bold text-white tracking-widest uppercase text-xs mb-6">Kategori Utama</h4>
-                  <ul className="space-y-4 text-sm">
-                    {['Laptop Premium', 'PC Desktop', 'Monitor Kreator', 'Aksesoris Pintar'].map((item) => (
-                      <li key={item} className="hover:text-cyan-400 cursor-pointer transition-all duration-300 flex items-center gap-3 group">
-                        <div className="w-1.5 h-1.5 bg-cyan-900 rounded-full group-hover:bg-cyan-400 group-hover:scale-150 transition-all duration-300"></div> 
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div>
-                  <h4 className="font-bold text-white tracking-widest uppercase text-xs mb-6">Pembaruan Katalog</h4>
-                  <p className="text-sm text-slate-500 mb-4 font-light">Jadilah yang pertama tahu saat stok baru tiba.</p>
-                  <div className="flex bg-[#001830] border border-white/10 rounded-full p-1 focus-within:border-cyan-400 focus-within:ring-2 ring-cyan-500/20 transition-all duration-300">
-                    <input type="email" placeholder="Email Anda..." className="bg-transparent text-white px-4 py-2 text-sm w-full focus:outline-none" />
-                    <button className="bg-cyan-500 text-[#002345] font-bold uppercase tracking-widest px-6 py-2 text-xs rounded-full hover:bg-cyan-400 transition-colors">Daftar</button>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="border-t border-white/5 pt-8 flex flex-col md:flex-row justify-between items-center gap-6">
-                <p className="text-xs tracking-widest text-slate-600 font-light uppercase">
-                  © 2026 Smart Technology Mandiri.
-                </p>
-                <div className="flex gap-3">
-                  {['FB', 'IG', 'TW', 'YT'].map(social => (
-                    <div key={social} className="w-10 h-10 rounded-full bg-white/5 hover:bg-cyan-500 flex items-center justify-center text-slate-400 hover:text-[#002345] font-bold text-xs cursor-pointer transition-all duration-300 hover:-translate-y-1">
-                      {social}
+                {adminTab === 'products' && (
+                  <div className="bg-[#1A0B2E] p-6 sm:p-8 rounded-3xl border border-purple-500/20 shadow-lg animate-fade-in">
+                    <div className={`bg-[#0D0518] p-4 sm:p-6 rounded-2xl border ${isEditing ? 'border-cyan-500/50 shadow-[0_0_15px_rgba(34,211,238,0.2)]' : 'border-purple-500/30'} mb-8 transition-all`}>
+                      <h3 className={`text-sm font-bold uppercase tracking-widest mb-4 flex items-center gap-2 ${isEditing ? 'text-cyan-400' : 'text-purple-300'}`}><i className={`fas ${isEditing ? 'fa-edit' : 'fa-plus-circle'}`}></i> {isEditing ? 'Edit Data Produk' : 'Tambah Produk Baru'}</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4">
+                        <input type="text" placeholder="Nama Produk" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} className="bg-[#1A0B2E] border border-purple-500/30 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-400 sm:col-span-4" />
+                        <input type="number" placeholder="Harga Jual" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} className="bg-[#1A0B2E] border border-purple-500/30 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-400" />
+                        <input type="number" placeholder="Harga Coret (Original)" value={newProduct.originalPrice} onChange={e => setNewProduct({...newProduct, originalPrice: e.target.value})} className="bg-[#1A0B2E] border border-purple-500/30 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-400" />
+                        <input type="number" placeholder="Stok Fisik" value={newProduct.stock} onChange={e => setNewProduct({...newProduct, stock: e.target.value})} className="bg-[#1A0B2E] border border-purple-500/30 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-400" />
+                        <div className="sm:col-span-4 lg:col-span-1"><input type="text" placeholder="Label Badge (Misal: Best Seller)" value={newProduct.badge} onChange={e => setNewProduct({...newProduct, badge: e.target.value})} className="w-full bg-[#1A0B2E] border border-purple-500/30 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-400" /></div>
+                        
+                        <div className="sm:col-span-4 bg-[#1A0B2E] p-3 rounded-xl border border-purple-500/30 flex flex-col sm:flex-row items-center gap-4">
+                          <div className="w-full sm:flex-1"><label className="block text-[10px] uppercase tracking-widest text-purple-300 font-bold mb-1">Upload Gambar Produk (Otomatis Tersimpan)</label>
+                            <input type="file" accept="image/*" onChange={(e) => { if(e.target.files[0]) { setNewProduct({...newProduct, imageFile: e.target.files[0], imagePreview: URL.createObjectURL(e.target.files[0])}) } }} className="block w-full text-xs text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-purple-500/20 file:text-cyan-400 hover:file:bg-purple-500/40 transition-all cursor-pointer" />
+                          </div>
+                          {newProduct.imagePreview && <div className="h-16 w-16 bg-white rounded-lg flex-shrink-0 p-1"><img src={newProduct.imagePreview} className="w-full h-full object-contain" /></div>}
+                        </div>
+                        
+                        <div className="sm:col-span-2">
+                          <select value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})} className="w-full bg-[#1A0B2E] border border-purple-500/30 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-400 mb-2">
+                            {categories.slice(1).map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                            <option value="NEW_CATEGORY" className="text-cyan-400 font-bold">+ Tambah Kategori Baru</option>
+                          </select>
+                          {newProduct.category === 'NEW_CATEGORY' && <input type="text" placeholder="Ketik nama kategori..." value={newCustomCategory} onChange={e => setNewCustomCategory(e.target.value)} className="w-full bg-[#0D0518] border border-cyan-500/50 rounded-xl px-4 py-2 text-cyan-400 text-sm focus:outline-none focus:border-cyan-300" />}
+                        </div>
+                        <div className="sm:col-span-2">
+                          <select value={newProduct.brand} onChange={e => setNewProduct({...newProduct, brand: e.target.value})} className="w-full bg-[#1A0B2E] border border-purple-500/30 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-400 mb-2">
+                            {brandsList.map(b => <option key={b} value={b}>{b}</option>)}
+                            <option value="NEW_BRAND" className="text-cyan-400 font-bold">+ Tambah Merek Baru</option>
+                          </select>
+                          {newProduct.brand === 'NEW_BRAND' && <input type="text" placeholder="Ketik nama merek..." value={newCustomBrand} onChange={e => setNewCustomBrand(e.target.value)} className="w-full bg-[#0D0518] border border-cyan-500/50 rounded-xl px-4 py-2 text-cyan-400 text-sm focus:outline-none focus:border-cyan-300 uppercase" />}
+                        </div>
+                        
+                        <div className="sm:col-span-4 flex flex-col sm:flex-row gap-4 mt-2">
+                          <button onClick={handleSaveProduct} disabled={isUploading} className="flex-1 bg-gradient-to-r from-cyan-400 to-purple-500 text-white font-bold rounded-xl px-4 py-3 hover:scale-[1.02] transition-transform flex justify-center items-center gap-2 shadow-md disabled:opacity-50 disabled:cursor-not-allowed">
+                            <i className={`fas ${isUploading ? 'fa-spinner fa-spin' : isEditing ? 'fa-save' : 'fa-plus'}`}></i> {isUploading ? 'Menyimpan...' : isEditing ? 'Simpan Perubahan' : 'Tambahkan ke Katalog'}
+                          </button>
+                          {isEditing && <button onClick={handleCancelEdit} disabled={isUploading} className="bg-[#1A0B2E] border border-red-500/50 text-red-400 font-bold rounded-xl px-8 py-3 hover:bg-red-500/10 transition-colors shadow-md disabled:opacity-50">Batal</button>}
+                        </div>
+                      </div>
                     </div>
-                  ))}
-                </div>
+
+                    <div className="flex flex-col sm:flex-row gap-4 mb-6 border-t border-purple-500/20 pt-8">
+                      <div className="flex-1 relative"><i className="fas fa-search absolute left-4 top-3.5 text-cyan-400/50"></i><input type="text" placeholder="Cari nama produk yang sudah tayang..." value={adminSearchQuery} onChange={e => setAdminSearchQuery(e.target.value)} className="w-full bg-[#0D0518] border border-purple-500/30 rounded-xl px-4 py-3 pl-11 text-white text-sm focus:outline-none focus:border-cyan-400 shadow-inner" /></div>
+                      <select value={adminCategoryFilter} onChange={e => setAdminCategoryFilter(e.target.value)} className="bg-[#0D0518] border border-purple-500/30 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-cyan-400 sm:w-48 shadow-inner">{categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}</select>
+                    </div>
+
+                    <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2 scrollbar-hide">
+                      {filteredAdminProducts.length > 0 ? filteredAdminProducts.map(p => (
+                        <div key={p.id} className="bg-[#0D0518] p-4 rounded-xl flex items-center justify-between gap-4 border border-white/5 hover:border-cyan-500/30 transition-colors shadow-sm">
+                          <div className="flex items-center gap-4 flex-1">
+                            <div className="w-14 h-14 bg-white rounded-xl flex-shrink-0 overflow-hidden relative shadow-inner"><img src={p.image} className="w-full h-full object-contain p-1" /></div>
+                            <div className="flex-1"><div className="text-white text-sm font-semibold line-clamp-1">{p.name}</div><div className="flex items-center gap-4 mt-1.5"><span className="text-cyan-400 text-xs font-bold">{formatRupiah(p.price)}</span><span className={`text-[10px] px-2 py-0.5 rounded font-bold ${p.stock > 0 ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>Stok: {p.stock}</span></div></div>
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <button onClick={() => handleEditProduct(p)} className="text-cyan-400 hover:text-cyan-300 bg-cyan-400/10 hover:bg-cyan-400/20 w-10 h-10 rounded-full flex items-center justify-center transition-colors"><i className="fas fa-edit"></i></button>
+                            <button onClick={() => handleDeleteProduct(p.id)} className="text-red-400 hover:text-red-300 bg-red-400/10 hover:bg-red-400/20 w-10 h-10 rounded-full flex items-center justify-center transition-colors"><i className="fas fa-trash"></i></button>
+                          </div>
+                        </div>
+                      )) : <div className="text-center py-12 bg-[#0D0518] rounded-xl border border-white/5"><i className="fas fa-search text-3xl text-purple-500/30 mb-3"></i><p className="text-purple-300/50 text-sm">Produk tidak ditemukan.</p></div>}
+                    </div>
+                  </div>
+                )}
+
+                {adminTab === 'banner' && (
+                  <div className="bg-[#1A0B2E] p-6 sm:p-8 rounded-3xl border border-purple-500/20 shadow-lg animate-fade-in">
+                    <h2 className="text-lg font-bold text-white mb-6 flex items-center gap-2"><i className="fas fa-image text-cyan-400"></i> Edit Banner Utama</h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                      <div><label className="block text-xs uppercase tracking-widest mb-2 text-purple-300 font-bold">Label Atas (Opsional)</label><input type="text" value={bannerInfo.badge} onChange={e => setBannerInfo({...bannerInfo, badge: e.target.value})} className="w-full bg-[#0D0518] border border-purple-500/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-400" /></div>
+                      <div><label className="block text-xs uppercase tracking-widest mb-2 text-purple-300 font-bold">Teks Tombol Aksi</label><input type="text" value={bannerInfo.buttonText} onChange={e => setBannerInfo({...bannerInfo, buttonText: e.target.value})} className="w-full bg-[#0D0518] border border-purple-500/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-400" /></div>
+                      <div className="sm:col-span-2"><label className="block text-xs uppercase tracking-widest mb-2 text-purple-300 font-bold">Judul Utama Banner</label><input type="text" value={bannerInfo.title} onChange={e => setBannerInfo({...bannerInfo, title: e.target.value})} className="w-full bg-[#0D0518] border border-purple-500/30 rounded-xl px-4 py-3 text-white font-bold focus:outline-none focus:border-cyan-400 text-lg" /></div>
+                      <div className="sm:col-span-2"><label className="block text-xs uppercase tracking-widest mb-2 text-purple-300 font-bold">Deskripsi / Sub-judul</label><textarea value={bannerInfo.subtitle} onChange={e => setBannerInfo({...bannerInfo, subtitle: e.target.value})} className="w-full bg-[#0D0518] border border-purple-500/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-400 h-24"></textarea></div>
+                      
+                      <div className="sm:col-span-2 bg-[#0D0518] p-4 rounded-xl border border-purple-500/30 flex flex-col sm:flex-row items-center gap-4">
+                        <div className="w-full sm:flex-1"><label className="block text-[10px] uppercase tracking-widest text-purple-300 font-bold mb-2">Upload Gambar Latar (Otomatis Tersimpan)</label>
+                          <input type="file" accept="image/*" onChange={(e) => { if(e.target.files[0]) { setBannerInfo({...bannerInfo, imageFile: e.target.files[0], imagePreview: URL.createObjectURL(e.target.files[0])}) } }} className="block w-full text-xs text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-purple-500/20 file:text-cyan-400 hover:file:bg-purple-500/40 transition-all cursor-pointer" />
+                        </div>
+                        {bannerInfo.imagePreview && <div className="h-20 w-32 bg-[#1A0B2E] rounded-lg flex-shrink-0 overflow-hidden border border-cyan-500/30"><img src={bannerInfo.imagePreview} className="w-full h-full object-cover" /></div>}
+                      </div>
+                      <div className="sm:col-span-2 mt-4"><button onClick={handleSaveBanner} disabled={isUploading} className="w-full sm:w-auto bg-gradient-to-r from-cyan-400 to-purple-500 text-white font-bold rounded-xl px-8 py-3 hover:scale-[1.02] transition-transform flex justify-center items-center gap-2 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"><i className={`fas ${isUploading ? 'fa-spinner fa-spin' : 'fa-save'}`}></i> {isUploading ? 'Menyimpan...' : 'Simpan Perubahan Banner'}</button></div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
-          </footer>
-        </div>
-      );
-    }
+          );
+        }
 
-    const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(<App />);
+        return (
+          <div className="font-sans text-gray-800 relative">
+            <button className="fixed bottom-6 right-6 z-50 bg-gradient-to-r from-cyan-400 to-purple-500 text-white p-4 rounded-full shadow-[0_8px_30px_rgba(168,85,247,0.4)] hover:scale-110 hover:shadow-[0_8px_40px_rgba(34,211,238,0.6)] transition-all duration-300 group flex items-center justify-center w-14 h-14"><i className="fas fa-comment-dots text-2xl animate-pulse"></i><span className="absolute right-full mr-4 top-1/2 -translate-y-1/2 bg-[#1A0B2E] text-white text-xs px-3 py-2 rounded-xl whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none shadow-xl">Tanya Sales Kami</span></button>
+
+            <header className={`sticky top-0 z-40 transition-all duration-300 ${scrolled ? 'bg-[#1A0B2E]/90 backdrop-blur-lg shadow-lg py-2' : 'bg-[#1A0B2E] py-4'} border-b border-white/5`}>
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="flex items-center justify-between gap-6">
+                  <div className="flex items-center gap-4 cursor-pointer group">
+                    <img src="https://drive.google.com/thumbnail?id=1WLxFwy421QxxzZ4vfwfozlWSUT1qMZgr&sz=w800" alt="SMART TECHNOLOGY MANDIRI" onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/400x100/1A0B2E/a855f7?text=SMART+TECH'; }} className="h-10 sm:h-12 object-contain group-hover:scale-105 transition-transform duration-300 drop-shadow-[0_0_12px_rgba(168,85,247,0.4)]" />
+                    <div className="hidden sm:block border-l-2 border-purple-500/30 pl-4 py-1">
+                      <h1 className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-400 font-bold tracking-widest text-sm uppercase flex items-center gap-2"><i className="fas fa-bolt text-yellow-400 text-xs"></i> KATALOG RESMI</h1>
+                      <p className="text-slate-300 text-[10px] tracking-widest uppercase mt-0.5">SMART TECHNOLOGY MANDIRI</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-6">
+                    <button onClick={() => { isAuthenticated ? setView('admin') : setView('login') }} className="flex flex-col items-center hover:text-cyan-400 transition-colors group">
+                      <div className="p-2 bg-white/5 rounded-full group-hover:bg-purple-500/20 transition-colors w-9 h-9 flex items-center justify-center relative">{db && <span className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 border-2 border-[#1A0B2E] rounded-full"></span>}<i className="fas fa-user-shield text-white group-hover:text-cyan-400"></i></div>
+                      <span className="text-[10px] tracking-wider uppercase hidden sm:block mt-1 text-slate-300 group-hover:text-cyan-400">Admin</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </header>
+
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12">
+              <section className="relative rounded-3xl overflow-hidden shadow-[0_20px_50px_-12px_rgba(26,11,46,0.5)] h-56 sm:h-[400px] w-full flex items-center justify-center bg-gradient-to-br from-[#0D0518] via-[#1A0B2E] to-[#2D1650] text-white group" style={bannerInfo.backgroundImage ? { backgroundImage: `url(${bannerInfo.backgroundImage})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}>
+                {bannerInfo.backgroundImage && <div className="absolute inset-0 bg-[#0D0518]/70 mix-blend-multiply z-0"></div>}
+                <div className="absolute top-0 left-1/4 w-64 h-64 bg-cyan-500/20 rounded-full blur-[80px] mix-blend-screen group-hover:scale-150 transition-transform duration-1000 z-0"></div>
+                <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-purple-600/30 rounded-full blur-[80px] mix-blend-screen group-hover:scale-150 transition-transform duration-1000 delay-100 z-0"></div>
+                <div className="relative z-10 text-center px-6 flex flex-col items-center">
+                  {bannerInfo.badge && <button onClick={scrollToKatalog} className="inline-block border border-purple-500/50 text-cyan-400 hover:bg-purple-500/20 hover:text-white hover:scale-105 transition-all duration-300 text-xs px-4 py-1.5 mb-6 rounded-full tracking-widest uppercase bg-white/5 backdrop-blur-md shadow-lg">{bannerInfo.badge}</button>}
+                  <h1 className="text-4xl sm:text-7xl font-black mb-4 tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-white to-purple-300 drop-shadow-sm">{bannerInfo.title}</h1>
+                  <p className="text-sm sm:text-xl text-purple-200/80 font-light mb-8 tracking-wide max-w-xl whitespace-pre-wrap">{bannerInfo.subtitle}</p>
+                  <button onClick={scrollToKatalog} className="bg-gradient-to-r from-cyan-400 to-purple-500 text-white font-bold py-3 px-8 rounded-full transition-all duration-300 shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:shadow-[0_0_30px_rgba(34,211,238,0.6)] hover:scale-105 flex items-center gap-2 uppercase tracking-widest text-sm">{bannerInfo.buttonText} <i className="fas fa-arrow-right ml-1"></i></button>
+                </div>
+              </section>
+
+              <section className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+                {[ { icon: 'fa-shield-alt', title: 'Garansi Resmi', desc: '100% Original' }, { icon: 'fa-truck', title: 'Gratis Ongkir', desc: 'Aman & Cepat' }, { icon: 'fa-desktop', title: 'Toko Offline', desc: 'Seluruh Indonesia' }, { icon: 'fa-headphones', title: 'Layanan 24/7', desc: 'Teknisi Handal' } ].map((feat, i) => (
+                  <div key={i} className="bg-white p-6 rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-purple-300 transition-all duration-300 flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-4 border border-slate-100 group cursor-default">
+                    <div className="bg-purple-50 text-[#1A0B2E] w-12 h-12 flex items-center justify-center rounded-full group-hover:bg-gradient-to-br group-hover:from-cyan-400 group-hover:to-purple-500 group-hover:text-white group-hover:shadow-[0_0_15px_rgba(168,85,247,0.4)] transition-all duration-300"><i className={`fas ${feat.icon} text-xl`}></i></div>
+                    <div><h3 className="font-bold text-sm text-[#1A0B2E] tracking-wide uppercase mb-1">{feat.title}</h3><p className="text-xs text-slate-500">{feat.desc}</p></div>
+                  </div>
+                ))}
+              </section>
+
+              <section id="katalog-produk">
+                <div className="flex mb-8">
+                  <div className="flex gap-3 overflow-x-auto pb-2 sm:pb-0 scrollbar-hide w-full">
+                    {categories.map(cat => <button key={cat} onClick={() => setActiveCategory(cat)} className={`px-6 py-2.5 rounded-full text-xs font-bold tracking-wider uppercase whitespace-nowrap transition-all duration-300 ${activeCategory === cat ? 'bg-gradient-to-r from-cyan-500 to-purple-600 text-white shadow-[0_4px_15px_rgba(168,85,247,0.3)] scale-105' : 'bg-white text-slate-500 border border-slate-200 hover:border-purple-400 hover:text-[#1A0B2E]'}`}>{cat}</button>)}
+                  </div>
+                </div>
+
+                {filteredProducts.length > 0 ? (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-8">
+                    {filteredProducts.map((product) => (
+                      <div key={product.id} className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-[0_15px_40px_-10px_rgba(168,85,247,0.2)] hover:-translate-y-2 hover:border-purple-300 transition-all duration-500 group flex flex-col h-full relative cursor-pointer">
+                        <div className="relative aspect-[4/3] overflow-hidden bg-slate-50 p-6 flex items-center justify-center">
+                          {product.badge && <span className="absolute top-4 left-4 bg-gradient-to-r from-cyan-400 to-purple-500 text-white text-[10px] font-bold px-3 py-1.5 rounded-full z-10 uppercase tracking-widest shadow-md">{product.badge}</span>}
+                          <img src={product.image} className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-700 ease-out" />
+                        </div>
+                        <div className="p-6 flex flex-col flex-grow bg-white z-20">
+                          <div className="text-[10px] text-purple-600 tracking-widest uppercase mb-2 font-bold bg-purple-50 inline-block px-2 py-1 rounded w-fit">{product.brand}</div>
+                          <h3 className="font-semibold text-[15px] text-[#1A0B2E] line-clamp-2 mb-4 group-hover:text-purple-600 transition-colors leading-relaxed">{product.name}</h3>
+                          <div className="mt-auto pt-4 border-t border-slate-50">
+                            <div className="flex items-center gap-2 mb-1"><span className="text-xs text-slate-400 line-through">{formatRupiah(product.originalPrice)}</span></div>
+                            <div className="text-xl font-black text-[#1A0B2E] mb-4 tracking-tight group-hover:scale-105 origin-left transition-transform duration-300">{formatRupiah(product.price)}</div>
+                            {product.stock > 0 ? (
+                              <button className="w-full py-3 px-4 bg-[#F7F5FA] text-[#1A0B2E] border border-purple-200/50 text-xs font-bold uppercase tracking-widest rounded-xl group-hover:bg-gradient-to-r group-hover:from-cyan-400 group-hover:to-purple-500 group-hover:text-white group-hover:border-transparent transition-all duration-300 flex items-center justify-center gap-2"><i className="fas fa-comment-dots"></i> Tanya Stok</button>
+                            ) : (
+                              <button disabled className="w-full py-3 px-4 bg-slate-100 text-slate-400 border border-slate-200/50 text-xs font-bold uppercase tracking-widest rounded-xl flex items-center justify-center gap-2 cursor-not-allowed"><i className="fas fa-times-circle"></i> Stok Kosong</button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : <div className="text-center py-24 bg-white rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center"><div className="w-24 h-24 bg-purple-50 rounded-full flex items-center justify-center mb-6"><i className="fas fa-desktop text-4xl text-purple-300"></i></div><h3 className="text-xl font-bold text-[#1A0B2E] tracking-wide uppercase">Produk tidak ditemukan</h3></div>}
+              </section>
+            </main>
+
+            <footer className="bg-[#0D0518] text-slate-400 border-t border-purple-500/20 pt-20 pb-8 mt-20 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-96 h-96 bg-purple-900/10 rounded-full blur-[100px] pointer-events-none"></div>
+              <div className="absolute bottom-0 left-0 w-96 h-96 bg-cyan-900/10 rounded-full blur-[100px] pointer-events-none"></div>
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
+                  <div className="col-span-1 md:col-span-1">
+                    <img src="https://drive.google.com/thumbnail?id=1WLxFwy421QxxzZ4vfwfozlWSUT1qMZgr&sz=w800" alt="SMART TECHNOLOGY MANDIRI" className="h-12 object-contain mb-6 drop-shadow-md brightness-0 invert opacity-90" onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/400x100/0D0518/ffffff?text=SMART+TECH'; }} />
+                    <p className="text-sm text-slate-500 leading-relaxed mb-6 font-light">Pusat informasi dan katalog pintar produk IT. Temukan inspirasi teknologi terbaik dengan panduan ahli dari kami.</p>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-white tracking-widest uppercase text-xs mb-6">Pusat Bantuan</h4>
+                    <ul className="space-y-4 text-sm">{['Lokasi Cabang', 'Klaim Garansi', 'Hubungi Sales', 'Cek Ketersediaan'].map(item => <li key={item} className="hover:text-purple-400 cursor-pointer transition-all duration-300 flex items-center gap-3 group"><div className="w-1.5 h-1.5 bg-purple-900 rounded-full group-hover:bg-cyan-400 group-hover:scale-150 transition-all duration-300"></div> {item}</li>)}</ul>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-white tracking-widest uppercase text-xs mb-6">Kategori Utama</h4>
+                    <ul className="space-y-4 text-sm">{['Laptop Premium', 'PC Desktop', 'Monitor Kreator', 'Aksesoris Pintar'].map(item => <li key={item} className="hover:text-purple-400 cursor-pointer transition-all duration-300 flex items-center gap-3 group"><div className="w-1.5 h-1.5 bg-purple-900 rounded-full group-hover:bg-cyan-400 group-hover:scale-150 transition-all duration-300"></div> {item}</li>)}</ul>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-white tracking-widest uppercase text-xs mb-6">Pembaruan Katalog</h4>
+                    <p className="text-sm text-slate-500 mb-4 font-light">Jadilah yang pertama tahu saat stok baru tiba.</p>
+                    <div className="flex bg-[#140824] border border-white/10 rounded-full p-1 focus-within:border-purple-400 focus-within:ring-2 ring-purple-500/20 transition-all duration-300"><input type="email" placeholder="Email Anda..." className="bg-transparent text-white px-4 py-2 text-sm w-full focus:outline-none" /><button className="bg-gradient-to-r from-cyan-400 to-purple-500 text-white font-bold uppercase tracking-widest px-6 py-2 text-xs rounded-full hover:scale-105 transition-all duration-300">Daftar</button></div>
+                  </div>
+                </div>
+                <div className="border-t border-white/5 pt-8 flex flex-col md:flex-row justify-between items-center gap-6">
+                  <p className="text-xs tracking-widest text-slate-600 font-light uppercase">© 2026 Smart Technology Mandiri.</p>
+                  <div className="flex gap-3">{['FB', 'IG', 'TW', 'YT'].map(social => <div key={social} className="w-10 h-10 rounded-full bg-white/5 hover:bg-gradient-to-r hover:from-cyan-400 hover:to-purple-500 flex items-center justify-center text-slate-400 hover:text-white font-bold text-xs cursor-pointer transition-all duration-300 hover:-translate-y-1">{social}</div>)}</div>
+                </div>
+              </div>
+            </footer>
+          </div>
+        );
+      }
+
+      const root = ReactDOM.createRoot(document.getElementById('root'));
+      root.render(<App />);
+    };
+
+    initApp();
   </script>
 </body>
 </html>
+```eof
+
+Tunggu sekitar 1 menit setelah di-*upload* ke Vercel. Selamat menikmati sistem kasir dan katalog canggihmu!
