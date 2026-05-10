@@ -66,7 +66,7 @@
       } = window.FirebaseContext;
 
       // ==========================================
-      // KONFIGURASI DATABASE FIREBASE (Katalog STM)
+      // KONFIGURASI DATABASE FIREBASE
       // ==========================================
       let firebaseConfig = {
         apiKey: "AIzaSyCGbJigJENF9b2RkhCy3xxaN3yBHKaxeAs",
@@ -78,7 +78,7 @@
         measurementId: "G-PLEDDH8618"
       };
 
-      let appId = 'katalogstm'; // ID Project kamu
+      let appId = 'katalogstm';
       
       let app, auth, db;
       const isConfigValid = firebaseConfig.projectId && firebaseConfig.projectId !== "ISI_PROJECT_ID_DISINI";
@@ -93,7 +93,7 @@
         db = getFirestore(app);
       }
 
-      // Fungsi Pengompres Gambar 
+      // Fungsi Pengompres Gambar (Transparansi PNG Aman)
       const compressImage = (file, maxWidth = 800, quality = 0.6) => {
         return new Promise((resolve) => {
           const reader = new FileReader();
@@ -109,7 +109,6 @@
               const ctx = canvas.getContext('2d');
               ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
               
-              // Jika file asli adalah PNG, tetap simpan sebagai PNG agar transparan
               const mimeType = file.type === 'image/png' ? 'image/png' : 'image/webp';
               resolve(canvas.toDataURL(mimeType, quality));
             }
@@ -119,11 +118,10 @@
 
       const BRANDS_INITIAL = ['ASUS', 'ACER', 'LENOVO', 'HP', 'APPLE', 'MSI', 'LOGITECH', 'RAZER'];
       const INITIAL_PRODUCTS = [
-        { id: 1, name: 'ASUS ROG Zephyrus G14 (2024) - Ryzen 9, RTX 4060', price: 25999000, originalPrice: 28999000, category: 'Laptop', brand: 'ASUS', image: 'https://placehold.co/400x300/ffffff/1A0B2E?text=ASUS+ROG', rating: 4.9, badge: 'Save 10%', stock: 5 },
-        { id: 2, name: 'Lenovo Legion Pro 5i - Intel i7 Gen 13, RTX 4070', price: 28500000, originalPrice: 30000000, category: 'Laptop', brand: 'LENOVO', image: 'https://placehold.co/400x300/ffffff/1A0B2E?text=Lenovo+Legion', rating: 4.8, badge: 'Best Seller', stock: 3 }
+        { id: 1, name: 'ASUS ROG Zephyrus G14 (2024) - Ryzen 9, RTX 4060', price: 25999000, originalPrice: 28999000, category: 'Laptop', brand: 'ASUS', image: 'https://placehold.co/400x300/ffffff/1A0B2E?text=ASUS+ROG', rating: 4.9, badge: 'Save 10%', stock: 5, description: 'Laptop gaming premium ASUS ROG Zephyrus G14. Dilengkapi dengan prosesor AMD Ryzen 9 terbaru dan kartu grafis RTX 4060 yang sangat mumpuni untuk segala aktivitas berat seperti rendering, editing video 4K, hingga bermain game AAA rata kanan.\n\nSpesifikasi Singkat:\n- Processor: AMD Ryzen 9 8945HS\n- GPU: NVIDIA GeForce RTX 4060 8GB GDDR6\n- RAM: 16GB LPDDR5X\n- Storage: 1TB PCIe 4.0 NVMe M.2 SSD\n- Display: 14" 3K (2880 x 1800) OLED 120Hz\n\nGaransi Resmi 2 Tahun.' },
+        { id: 2, name: 'Lenovo Legion Pro 5i - Intel i7 Gen 13, RTX 4070', price: 28500000, originalPrice: 30000000, category: 'Laptop', brand: 'LENOVO', image: 'https://placehold.co/400x300/ffffff/1A0B2E?text=Lenovo+Legion', rating: 4.8, badge: 'Best Seller', stock: 3, description: 'Lenovo Legion Pro 5i hadir dengan kekuatan Intel Core i7 Generasi ke-13 yang ganas, dipadukan dengan RTX 4070 untuk FPS maksimal. Sistem pendingin ColdFront 5.0 memastikan performa tetap stabil di suhu ekstrem.\n\nSpesifikasi Singkat:\n- Processor: Intel Core i7-13700HX\n- GPU: NVIDIA GeForce RTX 4070 8GB GDDR6 (140W TGP)\n- RAM: 32GB DDR5 4800MHz\n- Storage: 1TB M.2 2280 PCIe Gen4 SSD\n- Display: 16" WQXGA (2560x1600) IPS 500nits 240Hz' }
       ];
 
-      // 5 DEFAULT SLOT UNTUK LOGO PARTNER
       const DEFAULT_PARTNERS = [
         { id: 'p1', name: 'Your Brand', logo: '' },
         { id: 'p2', name: 'Your Brand', logo: '' },
@@ -148,6 +146,9 @@
         const [categories, setCategories] = useState(['Semua', 'Laptop', 'Monitor', 'Aksesoris', 'Komponen PC']);
         const [brandsList, setBrandsList] = useState(BRANDS_INITIAL);
         
+        // STATE UNTUK HALAMAN DETAIL PRODUK
+        const [selectedProduct, setSelectedProduct] = useState(null);
+
         // --- STATE UNTUK CUSTOM MODAL & TOAST ---
         const [toast, setToast] = useState({ show: false, message: '', type: 'info' });
         const [confirmModal, setConfirmModal] = useState({ show: false, message: '', onConfirm: null });
@@ -171,25 +172,16 @@
         };
 
         // --- STATE UNTUK BANNER SLIDER ---
-        const [banners, setBanners] = useState([{
-          id: 1,
-          badge: 'Katalog Eksklusif 2026',
-          title: 'SUPER GAMING WEEK',
-          subtitle: 'Tingkatkan pengalaman digital Anda dengan teknologi masa depan yang tersedia hari ini.',
-          buttonText: 'Eksplorasi Sekarang',
-          backgroundImage: ''
-        }]);
+        const [banners, setBanners] = useState([{ id: 1, badge: 'Katalog Eksklusif 2026', title: 'SUPER GAMING WEEK', subtitle: 'Tingkatkan pengalaman digital Anda dengan teknologi masa depan.', buttonText: 'Eksplorasi Sekarang', backgroundImage: '' }]);
         const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
-        const [bannerForm, setBannerForm] = useState({
-          badge: '', title: '', subtitle: '', buttonText: '', backgroundImage: '', imageFile: null, imagePreview: null
-        });
+        const [bannerForm, setBannerForm] = useState({ badge: '', title: '', subtitle: '', buttonText: '', backgroundImage: '', imageFile: null, imagePreview: null });
         const [editingBannerId, setEditingBannerId] = useState(null);
 
-        // --- STATE UNTUK PARTNER LOGOS (Card System) ---
+        // --- STATE UNTUK PARTNER LOGOS ---
         const [partnerLogos, setPartnerLogos] = useState(DEFAULT_PARTNERS);
         
         const [newProduct, setNewProduct] = useState({
-          name: '', price: '', originalPrice: '', category: 'Laptop', brand: 'ASUS', badge: '', image: '', imageFile: null, imagePreview: null, stock: ''
+          name: '', price: '', originalPrice: '', category: 'Laptop', brand: 'ASUS', badge: '', image: '', imageFile: null, imagePreview: null, stock: '', description: ''
         });
         const [isEditing, setIsEditing] = useState(false);
         const [editId, setEditId] = useState(null);
@@ -213,7 +205,6 @@
         const [isTyping, setIsTyping] = useState(false);
         const chatEndRef = useRef(null);
 
-        // Auto-scroll chat ke bawah saat ada pesan baru
         useEffect(() => {
           if (isChatOpen) {
             chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -245,10 +236,9 @@
               const prods = snap.docs.map(doc => ({id: Number(doc.id), ...doc.data()}));
               setProducts(prods.sort((a,b) => b.id - a.id));
             } else {
-              // Populate initial data if empty
               INITIAL_PRODUCTS.forEach(p => setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'products', String(p.id)), p));
             }
-          }, (err) => console.error("Snapshot error (Products):", err));
+          }, (err) => console.error("Snapshot error:", err));
 
           const settingsRef = collection(db, 'artifacts', appId, 'public', 'data', 'settings');
           const unsubSettings = onSnapshot(settingsRef, (snap) => {
@@ -256,11 +246,8 @@
               if (docSnap.id === 'catalogSettings') {
                 const data = docSnap.data();
                 if(data.banners && data.banners.length > 0) setBanners(data.banners);
-                else if(data.bannerInfo) setBanners([{ id: 1, ...data.bannerInfo }]);
-                
                 if(data.categories) setCategories(data.categories);
                 if(data.brandsList) setBrandsList(data.brandsList);
-                
                 if(data.partnerLogos && data.partnerLogos.length > 0) {
                   let loadedLogos = [...data.partnerLogos];
                   while (loadedLogos.length < 5) {
@@ -272,18 +259,18 @@
                 }
               }
             });
-          }, (err) => console.error("Snapshot error (Settings):", err));
+          });
 
           return () => { unsubProducts(); unsubSettings(); };
         }, [dbUser]);
 
         useEffect(() => {
-          if (view !== 'catalog' || banners.length <= 1) return;
+          if (view !== 'catalog' || banners.length <= 1 || selectedProduct) return;
           const timer = setInterval(() => {
             setCurrentBannerIndex((prev) => (prev + 1) % banners.length);
           }, 5000);
           return () => clearInterval(timer);
-        }, [banners.length, view]);
+        }, [banners.length, view, selectedProduct]);
 
         useEffect(() => {
           const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -345,27 +332,26 @@
             const productData = {
               name: newProduct.name, badge: newProduct.badge, category: finalCategory, brand: finalBrand,
               price: Number(newProduct.price), originalPrice: newProduct.originalPrice ? Number(newProduct.originalPrice) : Number(newProduct.price),
-              stock: Number(newProduct.stock) || 0, image: imageUrl, rating: newProduct.rating || 5.0
+              stock: Number(newProduct.stock) || 0, image: imageUrl, rating: newProduct.rating || 5.0,
+              description: newProduct.description || '', // DISIMPAN DISINI
+              id: isEditing ? editId : Date.now()
             };
 
-            const saveId = isEditing ? editId : Date.now();
-            productData.id = saveId;
-
             if (db) {
-              await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'products', String(saveId)), productData);
+              await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'products', String(productData.id)), productData);
               await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'catalogSettings'), { categories: newCats, brandsList: newBrands }, { merge: true });
             } else {
-              if (isEditing) setProducts(products.map(p => p.id === saveId ? productData : p));
+              if (isEditing) setProducts(products.map(p => p.id === productData.id ? productData : p));
               else setProducts([productData, ...products]);
               setCategories(newCats); setBrandsList(newBrands);
             }
             
             showToast(isEditing ? "Perubahan produk berhasil disimpan!" : "Produk baru berhasil ditambahkan!");
             setIsEditing(false); setEditId(null);
-            setNewProduct({ name: '', price: '', originalPrice: '', category: 'Laptop', brand: 'ASUS', badge: '', image: '', imageFile: null, imagePreview: null, stock: '' });
+            setNewProduct({ name: '', price: '', originalPrice: '', category: 'Laptop', brand: 'ASUS', badge: '', image: '', imageFile: null, imagePreview: null, stock: '', description: '' });
             setNewCustomCategory(''); setNewCustomBrand('');
           } catch (error) {
-            console.error(error); showToast("Terjadi kesalahan sistem saat memproses gambar.", "error");
+            console.error(error); showToast("Gagal menyimpan produk.", "error");
           } finally {
             setIsUploading(false);
           }
@@ -383,229 +369,126 @@
           setIsUploading(true);
           try {
             let bgUrl = bannerForm.backgroundImage;
-            if (bannerForm.imageFile) {
-              bgUrl = await compressImage(bannerForm.imageFile);
-            }
+            if (bannerForm.imageFile) bgUrl = await compressImage(bannerForm.imageFile);
+            const newBannerData = { id: editingBannerId || Date.now(), badge: bannerForm.badge, title: bannerForm.title, subtitle: bannerForm.subtitle, buttonText: bannerForm.buttonText, backgroundImage: bgUrl };
+            let updatedBanners = editingBannerId ? banners.map(b => b.id === editingBannerId ? newBannerData : b) : [...banners, newBannerData];
 
-            const newBannerData = { 
-              id: editingBannerId || Date.now(),
-              badge: bannerForm.badge, 
-              title: bannerForm.title, 
-              subtitle: bannerForm.subtitle, 
-              buttonText: bannerForm.buttonText, 
-              backgroundImage: bgUrl 
-            };
-
-            let updatedBanners;
-            if (editingBannerId) {
-              updatedBanners = banners.map(b => b.id === editingBannerId ? newBannerData : b);
-            } else {
-              updatedBanners = [...banners, newBannerData];
-            }
-
-            if (db) {
-              await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'catalogSettings'), { banners: updatedBanners }, { merge: true });
-            } else {
-              setBanners(updatedBanners);
-            }
+            if (db) await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'catalogSettings'), { banners: updatedBanners }, { merge: true });
+            else setBanners(updatedBanners);
             
-            showToast(editingBannerId ? "Banner berhasil diperbarui!" : "Banner baru berhasil ditambahkan!");
+            showToast(editingBannerId ? "Banner berhasil diperbarui!" : "Banner baru ditambahkan!");
             setBannerForm({ badge: '', title: '', subtitle: '', buttonText: '', backgroundImage: '', imageFile: null, imagePreview: null });
             setEditingBannerId(null);
-          } catch (error) {
-            console.error(error); showToast("Gagal menyimpan data banner.", "error");
-          } finally {
-            setIsUploading(false);
-          }
+          } catch (e) { showToast("Gagal menyimpan banner.", "error"); } finally { setIsUploading(false); }
         };
 
         const handleEditBannerClick = (banner) => {
-          setBannerForm({
-            badge: banner.badge || '', title: banner.title || '', subtitle: banner.subtitle || '', buttonText: banner.buttonText || '',
-            backgroundImage: banner.backgroundImage || '', imageFile: null, imagePreview: banner.backgroundImage || null
-          });
-          setEditingBannerId(banner.id);
-          window.scrollTo({ top: 0, behavior: 'smooth' });
+          setBannerForm({ badge: banner.badge || '', title: banner.title || '', subtitle: banner.subtitle || '', buttonText: banner.buttonText || '', backgroundImage: banner.backgroundImage || '', imageFile: null, imagePreview: banner.backgroundImage || null });
+          setEditingBannerId(banner.id); window.scrollTo({ top: 0, behavior: 'smooth' });
         };
 
         const handleDeleteBannerClick = (id) => {
-          if(banners.length <= 1) {
-            showToast("Gagal: Harus tersisa minimal 1 banner yang tayang!", "error");
-            return;
-          }
-          confirmAction("Yakin ingin menghapus banner ini dari halaman depan?", async () => {
-            const updatedBanners = banners.filter(b => b.id !== id);
-            if (db) {
-              await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'catalogSettings'), { banners: updatedBanners }, { merge: true });
-            } else {
-              setBanners(updatedBanners);
-            }
-            if(currentBannerIndex >= updatedBanners.length) setCurrentBannerIndex(0);
-            showToast("Banner berhasil dihapus.");
+          if(banners.length <= 1) return showToast("Harus tersisa minimal 1 banner tayang!", "error");
+          confirmAction("Hapus banner ini?", async () => {
+            const updated = banners.filter(b => b.id !== id);
+            if (db) await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'catalogSettings'), { banners: updated }, { merge: true });
+            else setBanners(updated);
+            if(currentBannerIndex >= updated.length) setCurrentBannerIndex(0);
+            showToast("Banner dihapus.");
           });
         };
 
-        const handleRemoveBannerImage = () => {
-          setBannerForm({ ...bannerForm, backgroundImage: '', imageFile: null, imagePreview: null });
-        };
-
-        const handleSavePartnersDB = async () => {
-          if (db) {
-            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'catalogSettings'), { partnerLogos }, { merge: true });
-          }
-        };
+        const handleSavePartnersDB = async () => { if (db) await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'catalogSettings'), { partnerLogos }, { merge: true }); };
 
         const handleImageSelectPartner = async (id, file) => {
           if (!file) return;
           try {
             const compressedUrl = await compressImage(file, 300, 0.8);
-            const updatedLogos = partnerLogos.map(p => p.id === id ? { ...p, logo: compressedUrl } : p);
-            setPartnerLogos(updatedLogos);
-            if (db) await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'catalogSettings'), { partnerLogos: updatedLogos }, { merge: true });
-            showToast("Foto Partner berhasil diupload!");
-          } catch (e) {
-            showToast("Gagal memproses gambar logo", "error");
-          }
-        };
-
-        const handleNameChangePartner = (id, newName) => {
-          setPartnerLogos(partnerLogos.map(p => p.id === id ? { ...p, name: newName } : p));
-        };
-
-        const handleClearPartnerImage = async (id) => {
-          const updated = partnerLogos.map(p => p.id === id ? { ...p, logo: '' } : p);
-          setPartnerLogos(updated);
-          if (db) await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'catalogSettings'), { partnerLogos: updated }, { merge: true });
-        };
-
-        const handleDeletePartnerSlot = async (id) => {
-          if (partnerLogos.length <= 5) {
-            return showToast("Sistem mewajibkan minimal ada 5 slot partner!", "error");
-          }
-          confirmAction("Hapus kotak slot partner ini secara permanen?", async () => {
-            const updated = partnerLogos.filter(p => p.id !== id);
+            const updated = partnerLogos.map(p => p.id === id ? { ...p, logo: compressedUrl } : p);
             setPartnerLogos(updated);
             if (db) await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'catalogSettings'), { partnerLogos: updated }, { merge: true });
-            showToast("Slot berhasil dihapus.");
+            showToast("Foto Partner diupload!");
+          } catch (e) { showToast("Gagal upload logo", "error"); }
+        };
+
+        const handleNameChangePartner = (id, newName) => setPartnerLogos(partnerLogos.map(p => p.id === id ? { ...p, name: newName } : p));
+        const handleClearPartnerImage = async (id) => { const updated = partnerLogos.map(p => p.id === id ? { ...p, logo: '' } : p); setPartnerLogos(updated); if (db) await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'catalogSettings'), { partnerLogos: updated }, { merge: true }); };
+        const handleDeletePartnerSlot = async (id) => {
+          if (partnerLogos.length <= 5) return showToast("Sistem mewajibkan minimal 5 slot partner!", "error");
+          confirmAction("Hapus slot partner ini?", async () => {
+            const updated = partnerLogos.filter(p => p.id !== id); setPartnerLogos(updated);
+            if (db) await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'catalogSettings'), { partnerLogos: updated }, { merge: true });
+            showToast("Slot dihapus.");
           });
         };
 
         const handleAddPartnerSlot = async () => {
           const newSlot = { id: `p${Date.now()}`, name: `Partner Baru`, logo: '' };
-          const updated = [...partnerLogos, newSlot];
-          setPartnerLogos(updated);
+          const updated = [...partnerLogos, newSlot]; setPartnerLogos(updated);
           if (db) await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'catalogSettings'), { partnerLogos: updated }, { merge: true });
-          showToast("Satu slot baru berhasil ditambahkan!");
+          showToast("Slot baru ditambahkan!");
         };
 
         const handleEditProduct = (product) => {
-          setNewProduct({ name: product.name, price: product.price, originalPrice: product.originalPrice, category: product.category, brand: product.brand, badge: product.badge || '', image: product.image || '', imageFile: null, imagePreview: product.image || null, stock: product.stock || 0 });
+          setNewProduct({ name: product.name, price: product.price, originalPrice: product.originalPrice, category: product.category, brand: product.brand, badge: product.badge || '', image: product.image || '', imageFile: null, imagePreview: product.image || null, stock: product.stock || 0, description: product.description || '' });
           setIsEditing(true); setEditId(product.id); setAdminTab('products'); window.scrollTo({ top: 0, behavior: 'smooth' });
         };
 
         const handleCancelEdit = () => {
           setIsEditing(false); setEditId(null);
-          setNewProduct({ name: '', price: '', originalPrice: '', category: 'Laptop', brand: 'ASUS', badge: '', image: '', imageFile: null, imagePreview: null, stock: '' });
+          setNewProduct({ name: '', price: '', originalPrice: '', category: 'Laptop', brand: 'ASUS', badge: '', image: '', imageFile: null, imagePreview: null, stock: '', description: '' });
           setNewCustomCategory(''); setNewCustomBrand('');
         };
 
         // --- FUNGSI WHATSAPP ---
         const handleWhatsAppClick = (product = null) => {
-          const phone = "6285381170567"; // Nomor WA kamu dengan kode negara 62
+          const phone = "6285381170567"; // Nomor WA kamu 
           let text = "Halo Admin Smart Technology Mandiri, saya ingin berkonsultasi mengenai produk di katalog Anda.";
-          
-          if (product) {
-            text = `Halo Admin Smart Technology Mandiri,\n\nSaya tertarik dengan produk ini:\n*${product.name}*\n*Harga:* ${formatRupiah(product.price)}\n\nApakah stoknya masih tersedia?`;
-          }
-          
+          if (product) text = `Halo Admin Smart Technology Mandiri,\n\nSaya tertarik dengan produk ini:\n*${product.name}*\n*Harga:* ${formatRupiah(product.price)}\n\nApakah stoknya masih tersedia?`;
           window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, '_blank');
         };
 
         // --- FUNGSI AI CHAT (GEMINI API) ---
         const handleSendChatMessage = async () => {
           if (!chatInput.trim()) return;
-          
           const userText = chatInput.trim();
-          const newUserMsg = { role: 'user', text: userText };
-          setChatMessages(prev => [...prev, newUserMsg]);
-          setChatInput('');
-          setIsTyping(true);
+          setChatMessages(prev => [...prev, { role: 'user', text: userText }]); setChatInput(''); setIsTyping(true);
 
-          // PENTING: Untuk di Canvas biarkan kosong "". Jika upload ke Vercel, isi dengan API Key dari Google AI Studio.
           const apiKey = ""; 
           const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
 
-          // Format katalog secara otomatis (Hanya yang stok > 0)
-          const catalogContext = products
-            .filter(p => p.stock > 0)
-            .map(p => `- ${p.name} | Kategori: ${p.category} | Brand: ${p.brand} | Harga: ${formatRupiah(p.price)} | Stok: ${p.stock}`)
-            .join('\n');
-
+          const catalogContext = products.filter(p => p.stock > 0).map(p => `- ${p.name} | Kategori: ${p.category} | Harga: ${formatRupiah(p.price)} | Stok: ${p.stock} | Deskripsi: ${p.description || '-'}`).join('\n');
           const systemPrompt = `Anda adalah "STM AI Sales", asisten virtual pintar dan ramah untuk toko "Smart Technology Mandiri".
-Tugas utama Anda adalah merekomendasikan produk kepada pelanggan HANYA berdasarkan data katalog toko kami di bawah ini.
-
-Katalog Produk Tersedia Saat Ini:
+Katalog Tersedia:
 ${catalogContext}
+ATURAN: Jangan rekomendasikan produk di luar katalog. Jawab ramah, sebutkan nama dan harga produk. Maksimal 3-4 kalimat.`;
 
-ATURAN PENTING:
-1. JANGAN PERNAH merekomendasikan produk yang tidak ada di daftar katalog di atas.
-2. Gunakan bahasa Indonesia yang santai, ramah, dan persuasif.
-3. Jika merekomendasikan produk, sebutkan NAMA PRODUK secara utuh persis seperti di katalog beserta HARGANYA.
-4. Jika pelanggan mencari spesifikasi/barang di luar katalog, beri tahu dengan sopan bahwa stok tersebut sedang tidak ada, dan arahkan ke alternatif terbaik yang kita miliki di katalog.
-5. Jawab dengan ringkas namun informatif (maksimal 3-4 kalimat).`;
-
-          // FIX BUG: API Gemini mewajibkan array riwayat chat diawali dengan User (Bukan Model).
-          // Karenanya, kita .slice(1) untuk menghapus pesan sambutan bawaan.
-          const apiContents = chatMessages.slice(1).map(msg => ({
-             role: msg.role === 'model' ? 'model' : 'user',
-             parts: [{ text: msg.text }]
-          }));
+          const apiContents = chatMessages.slice(1).map(msg => ({ role: msg.role === 'model' ? 'model' : 'user', parts: [{ text: msg.text }] }));
           apiContents.push({ role: 'user', parts: [{ text: userText }] });
 
-          const payload = {
-              contents: apiContents,
-              systemInstruction: { parts: [{ text: systemPrompt }] }
-          };
+          const payload = { contents: apiContents, systemInstruction: { parts: [{ text: systemPrompt }] } };
 
           try {
-              let result = null;
-              let retries = 5;
-              let delay = 1000;
-              
+              let result = null; let retries = 5; let delay = 1000;
               for(let i=0; i<retries; i++) {
                   try {
-                      const response = await fetch(endpoint, {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify(payload)
-                      });
+                      const response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
                       if(!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                      result = await response.json();
-                      break;
-                  } catch(err) {
-                      if (i === retries - 1) throw err;
-                      await new Promise(res => setTimeout(res, delay));
-                      delay *= 2;
-                  }
+                      result = await response.json(); break;
+                  } catch(err) { if (i === retries - 1) throw err; await new Promise(res => setTimeout(res, delay)); delay *= 2; }
               }
-              
-              const aiText = result?.candidates?.[0]?.content?.parts?.[0]?.text || "Maaf, sistem AI sedang sibuk. Silakan coba sebentar lagi.";
+              const aiText = result?.candidates?.[0]?.content?.parts?.[0]?.text || "Maaf, sistem AI sedang sibuk.";
               setChatMessages(prev => [...prev, { role: 'model', text: aiText }]);
-          } catch (error) {
-              console.error("Chat API Error:", error);
-              setChatMessages(prev => [...prev, { role: 'model', text: "Maaf, koneksi ke asisten pintar sedang terputus 😔. Silakan langsung hubungi Admin melalui tombol WhatsApp di bawah ini." }]);
-          } finally {
-              setIsTyping(false);
-          }
+          } catch (error) { setChatMessages(prev => [...prev, { role: 'model', text: "Maaf, koneksi terputus. Silakan hubungi Admin via WhatsApp." }]); } 
+          finally { setIsTyping(false); }
         };
 
         // ==========================================
-        // TAMPILAN LOGIN - LIGHT GLASSMORPHISM
+        // TAMPILAN LOGIN
         // ==========================================
         if (view === 'login') {
           return (
             <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 font-sans text-slate-800 relative overflow-hidden">
-              {/* Background Blobs */}
               <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-400/20 rounded-full blur-[100px] pointer-events-none"></div>
               <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-[100px] pointer-events-none"></div>
               
@@ -616,34 +499,29 @@ ATURAN PENTING:
                 {loginError && <div className="bg-red-50 text-red-500 border border-red-200 text-xs px-4 py-3 rounded-xl my-6 flex items-center gap-3"><i className="fas fa-exclamation-triangle"></i> {loginError}</div>}
                 
                 <form onSubmit={handleLogin} className="space-y-5 mt-6">
-                  <input type="text" value={loginData.username} onChange={e => setLoginData({...loginData, username: e.target.value})} className="w-full bg-white/80 border border-slate-200 rounded-xl px-4 py-3 text-[#002345] focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 text-center shadow-inner" placeholder="Username" />
-                  <input type="password" value={loginData.password} onChange={e => setLoginData({...loginData, password: e.target.value})} className="w-full bg-white/80 border border-slate-200 rounded-xl px-4 py-3 text-[#002345] focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 text-center shadow-inner" placeholder="Password" />
-                  <button type="submit" className="w-full bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-bold rounded-xl py-3 uppercase tracking-widest text-xs mt-4 hover:scale-[1.02] transition-transform shadow-lg shadow-cyan-500/30">Masuk Sistem</button>
+                  <input type="text" value={loginData.username} onChange={e => setLoginData({...loginData, username: e.target.value})} className="w-full bg-white/80 border border-slate-200 rounded-xl px-4 py-3 text-[#002345] focus:outline-none focus:border-cyan-500 text-center shadow-inner" placeholder="Username" />
+                  <input type="password" value={loginData.password} onChange={e => setLoginData({...loginData, password: e.target.value})} className="w-full bg-white/80 border border-slate-200 rounded-xl px-4 py-3 text-[#002345] focus:outline-none focus:border-cyan-500 text-center shadow-inner" placeholder="Password" />
+                  <button type="submit" className="w-full bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-bold rounded-xl py-3 uppercase tracking-widest text-xs mt-4 hover:scale-[1.02] transition-transform shadow-lg">Masuk Sistem</button>
                 </form>
-                <button onClick={() => { setView('catalog'); setLoginError(''); }} className="w-full mt-6 text-slate-500 hover:text-cyan-600 text-[10px] uppercase tracking-widest transition-colors"><i className="fas fa-arrow-left mr-2"></i>Kembali ke Katalog</button>
+                <button onClick={() => { setView('catalog'); setLoginError(''); }} className="w-full mt-6 text-slate-500 hover:text-cyan-600 text-[10px] uppercase tracking-widest transition-colors"><i className="fas fa-arrow-left mr-2"></i> Kembali ke Katalog</button>
               </div>
             </div>
           );
         }
 
         // ==========================================
-        // TAMPILAN ADMIN DASHBOARD - LIGHT GLASSMORPHISM
+        // TAMPILAN ADMIN DASHBOARD
         // ==========================================
         if (view === 'admin') {
           return (
             <div className="min-h-screen bg-[#F4F7FB] text-slate-800 p-4 sm:p-8 font-sans relative overflow-hidden">
-              
-              {/* Background Ambient Blobs */}
               <div className="fixed top-0 left-0 w-full h-full pointer-events-none z-0">
                  <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-br from-cyan-200/40 via-purple-200/40 to-transparent"></div>
                  <div className="absolute -top-40 -left-40 w-96 h-96 bg-cyan-400/20 rounded-full blur-[120px]"></div>
                  <div className="absolute top-1/4 right-10 w-96 h-96 bg-purple-500/15 rounded-full blur-[120px]"></div>
-                 <div className="absolute bottom-10 left-1/3 w-[30rem] h-[30rem] bg-blue-400/15 rounded-full blur-[120px]"></div>
               </div>
 
               <div className="max-w-6xl mx-auto space-y-6 relative z-10">
-                
-                {/* Header */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-200/50 pb-6">
                   <div>
                     <h1 className="text-2xl sm:text-3xl font-black text-[#002345]">Admin Dashboard</h1>
@@ -655,55 +533,48 @@ ATURAN PENTING:
                   </div>
                 </div>
 
-                {/* Tabs */}
                 <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2">
-                  <button onClick={() => setAdminTab('dashboard')} className={`px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-2 ${adminTab === 'dashboard' ? 'bg-gradient-to-r from-cyan-500 to-purple-600 text-white shadow-md border border-transparent' : 'bg-white/60 backdrop-blur-md text-slate-600 border border-slate-200 hover:bg-white hover:text-[#002345] shadow-sm'}`}><i className="fas fa-chart-pie"></i> Ringkasan</button>
-                  <button onClick={() => setAdminTab('products')} className={`px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-2 ${adminTab === 'products' ? 'bg-gradient-to-r from-cyan-500 to-purple-600 text-white shadow-md border border-transparent' : 'bg-white/60 backdrop-blur-md text-slate-600 border border-slate-200 hover:bg-white hover:text-[#002345] shadow-sm'}`}><i className="fas fa-box"></i> Kelola Produk</button>
-                  <button onClick={() => setAdminTab('banner')} className={`px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-2 ${adminTab === 'banner' ? 'bg-gradient-to-r from-cyan-500 to-purple-600 text-white shadow-md border border-transparent' : 'bg-white/60 backdrop-blur-md text-slate-600 border border-slate-200 hover:bg-white hover:text-[#002345] shadow-sm'}`}><i className="fas fa-images"></i> Banner & Logo</button>
+                  <button onClick={() => setAdminTab('dashboard')} className={`px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-2 ${adminTab === 'dashboard' ? 'bg-gradient-to-r from-cyan-500 to-purple-600 text-white shadow-md border border-transparent' : 'bg-white/60 backdrop-blur-md text-slate-600 border border-slate-200 hover:bg-white shadow-sm'}`}><i className="fas fa-chart-pie"></i> Ringkasan</button>
+                  <button onClick={() => setAdminTab('products')} className={`px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-2 ${adminTab === 'products' ? 'bg-gradient-to-r from-cyan-500 to-purple-600 text-white shadow-md border border-transparent' : 'bg-white/60 backdrop-blur-md text-slate-600 border border-slate-200 hover:bg-white shadow-sm'}`}><i className="fas fa-box"></i> Kelola Produk</button>
+                  <button onClick={() => setAdminTab('banner')} className={`px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-2 ${adminTab === 'banner' ? 'bg-gradient-to-r from-cyan-500 to-purple-600 text-white shadow-md border border-transparent' : 'bg-white/60 backdrop-blur-md text-slate-600 border border-slate-200 hover:bg-white shadow-sm'}`}><i className="fas fa-images"></i> Banner & Logo</button>
                 </div>
 
-                {/* 1. TAB DASHBOARD */}
                 {adminTab === 'dashboard' && (
                   <div className="space-y-6 animate-fade-in">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <div className="bg-white/70 backdrop-blur-xl p-6 rounded-3xl border border-white shadow-sm hover:shadow-md transition-all relative overflow-hidden group"><i className="fas fa-box-open absolute -right-4 -bottom-4 text-6xl text-cyan-500/10 group-hover:scale-110 transition-transform"></i><p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-2">Total SKU Produk</p><h3 className="text-3xl font-black text-[#002345]">{products.length}</h3></div>
-                      <div className="bg-white/70 backdrop-blur-xl p-6 rounded-3xl border border-white shadow-sm hover:shadow-md transition-all relative overflow-hidden group"><i className="fas fa-layer-group absolute -right-4 -bottom-4 text-6xl text-purple-500/10 group-hover:scale-110 transition-transform"></i><p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-2">Kategori Aktif</p><h3 className="text-3xl font-black text-[#002345]">{categories.length - 1}</h3></div>
-                      <div className="bg-white/70 backdrop-blur-xl p-6 rounded-3xl border border-white shadow-sm hover:shadow-md transition-all relative overflow-hidden group"><i className="fas fa-cubes absolute -right-4 -bottom-4 text-6xl text-green-500/10 group-hover:scale-110 transition-transform"></i><p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-2">Total Fisik Barang</p><h3 className="text-3xl font-black text-green-600">{products.reduce((acc, p) => acc + (p.stock || 0), 0)}</h3></div>
+                      <div className="bg-white/70 backdrop-blur-xl p-6 rounded-3xl border border-white shadow-sm hover:shadow-md transition-all relative overflow-hidden group"><i className="fas fa-box-open absolute -right-4 -bottom-4 text-6xl text-cyan-500/10 group-hover:scale-110 transition-transform"></i><p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-2">Total SKU</p><h3 className="text-3xl font-black text-[#002345]">{products.length}</h3></div>
+                      <div className="bg-white/70 backdrop-blur-xl p-6 rounded-3xl border border-white shadow-sm hover:shadow-md transition-all relative overflow-hidden group"><i className="fas fa-layer-group absolute -right-4 -bottom-4 text-6xl text-purple-500/10 group-hover:scale-110 transition-transform"></i><p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-2">Kategori</p><h3 className="text-3xl font-black text-[#002345]">{categories.length - 1}</h3></div>
+                      <div className="bg-white/70 backdrop-blur-xl p-6 rounded-3xl border border-white shadow-sm hover:shadow-md transition-all relative overflow-hidden group"><i className="fas fa-cubes absolute -right-4 -bottom-4 text-6xl text-green-500/10 group-hover:scale-110 transition-transform"></i><p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-2">Total Fisik</p><h3 className="text-3xl font-black text-green-600">{products.reduce((acc, p) => acc + (p.stock || 0), 0)}</h3></div>
                       <div className="bg-white/70 backdrop-blur-xl p-6 rounded-3xl border border-white shadow-sm hover:shadow-md transition-all relative overflow-hidden group"><i className="fas fa-exclamation-triangle absolute -right-4 -bottom-4 text-6xl text-red-500/10 group-hover:scale-110 transition-transform"></i><p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-2">Stok Kosong</p><h3 className="text-3xl font-black text-red-500">{products.filter(p => p.stock === 0).length}</h3></div>
                     </div>
-                    
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                       <div className="lg:col-span-1 bg-white/70 backdrop-blur-xl p-6 rounded-3xl border border-white shadow-sm">
                         <h2 className="text-sm font-bold text-orange-500 mb-6 flex items-center gap-2 uppercase tracking-widest"><i className="fas fa-bell"></i> Peringatan Stok Tipis</h2>
                         <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 scrollbar-hide">
                           {products.filter(p => p.stock === 0).map(p => (
-                             <div key={p.id} className="bg-white/80 border border-slate-100 p-4 rounded-xl shadow-sm flex justify-between items-center gap-3"><div className="flex-1"><p className="text-[#002345] text-xs font-semibold line-clamp-1">{p.name}</p><p className="text-slate-500 text-[10px] mt-1 font-bold uppercase">{p.category}</p></div><span className="bg-red-50 text-red-500 font-black text-[10px] px-2 py-1.5 rounded flex-shrink-0">KOSONG</span></div>
+                             <div key={p.id} className="bg-white/80 border border-slate-100 p-4 rounded-xl shadow-sm flex justify-between items-center gap-3"><div className="flex-1"><p className="text-[#002345] text-xs font-semibold line-clamp-1">{p.name}</p></div><span className="bg-red-50 text-red-500 font-black text-[10px] px-2 py-1.5 rounded flex-shrink-0">KOSONG</span></div>
                           ))}
                           {products.filter(p => p.stock > 0 && p.stock <= 3).map(p => (
-                              <div key={p.id} className="bg-white/80 border border-slate-100 p-4 rounded-xl shadow-sm flex justify-between items-center gap-3"><div className="flex-1"><p className="text-[#002345] text-xs font-semibold line-clamp-1">{p.name}</p><p className="text-slate-500 text-[10px] mt-1 font-bold uppercase">{p.category}</p></div><span className="bg-orange-50 text-orange-500 font-black text-xs px-2 py-1 rounded flex-shrink-0">Sisa {p.stock}</span></div>
+                              <div key={p.id} className="bg-white/80 border border-slate-100 p-4 rounded-xl shadow-sm flex justify-between items-center gap-3"><div className="flex-1"><p className="text-[#002345] text-xs font-semibold line-clamp-1">{p.name}</p></div><span className="bg-orange-50 text-orange-500 font-black text-xs px-2 py-1 rounded flex-shrink-0">Sisa {p.stock}</span></div>
                           ))}
-                          {products.filter(p => p.stock <= 3).length === 0 && <div className="text-center py-12 opacity-50"><i className="fas fa-check-circle text-4xl mb-3 text-green-500"></i><p className="text-xs">Semua stok produk aman</p></div>}
                         </div>
                       </div>
-                      
                       <div className="lg:col-span-2 bg-white/70 backdrop-blur-xl p-6 rounded-3xl border border-white shadow-sm">
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 border-b border-slate-200/50 pb-4">
                           <h2 className="text-sm font-bold text-[#002345] flex items-center gap-2 uppercase tracking-widest"><i className="fas fa-table text-cyan-500"></i> Laporan Stok</h2>
                           <div className="flex items-center gap-3 w-full sm:w-auto">
-                            <select value={adminCategoryFilter} onChange={e => setAdminCategoryFilter(e.target.value)} className="bg-white/80 border border-slate-200 rounded-xl px-4 py-2 text-[#002345] text-xs focus:outline-none focus:border-cyan-500 flex-1 sm:flex-none">
+                            <select value={adminCategoryFilter} onChange={e => setAdminCategoryFilter(e.target.value)} className="bg-white/80 border border-slate-200 rounded-xl px-4 py-2 text-[#002345] text-xs focus:outline-none">
                               {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                             </select>
-                            <button onClick={handleExportCSV} className="bg-green-50 hover:bg-green-100 border border-green-200 text-green-600 px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-colors">
-                              <i className="fas fa-file-excel"></i> Export CSV
-                            </button>
+                            <button onClick={handleExportCSV} className="bg-green-50 text-green-600 px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 border border-green-200"><i className="fas fa-file-excel"></i> Export</button>
                           </div>
                         </div>
                         <div className="overflow-x-auto max-h-[400px] scrollbar-hide">
                           <table className="w-full text-left border-collapse min-w-[600px]">
-                            <thead className="sticky top-0 bg-white/90 backdrop-blur-md z-10"><tr className="border-b border-slate-200 text-slate-500 text-[10px] uppercase tracking-widest"><th className="p-4 font-bold w-1/2">Nama Produk</th><th className="p-4 font-bold">Kategori</th><th className="p-4 font-bold">Merek</th><th className="p-4 font-bold text-center">Stok</th></tr></thead>
+                            <thead className="sticky top-0 bg-white/90 backdrop-blur-md z-10"><tr className="border-b border-slate-200 text-slate-500 text-[10px] uppercase tracking-widest"><th className="p-4 font-bold w-1/2">Nama Produk</th><th className="p-4 font-bold">Merek</th><th className="p-4 font-bold text-center">Stok</th></tr></thead>
                             <tbody className="text-xs">
                               {(adminCategoryFilter === 'Semua' ? products : products.filter(p => p.category === adminCategoryFilter)).map(p => (
-                                <tr key={p.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors group"><td className="p-4 font-semibold text-[#002345]"><div className="line-clamp-1 group-hover:text-cyan-600 transition-colors" title={p.name}>{p.name}</div><div className="text-[10px] text-slate-500 mt-1">{formatRupiah(p.price)}</div></td><td className="p-4 text-slate-600 font-medium">{p.category}</td><td className="p-4 text-cyan-600 font-bold">{p.brand}</td><td className="p-4 text-center"><span className={`px-2 py-1 rounded font-black text-[10px] ${p.stock === 0 ? 'bg-red-50 text-red-500' : p.stock <= 3 ? 'bg-orange-50 text-orange-500' : 'bg-green-50 text-green-600'}`}>{p.stock}</span></td></tr>
+                                <tr key={p.id} className="border-b border-slate-100 hover:bg-slate-50 group"><td className="p-4 font-semibold text-[#002345]"><div className="line-clamp-1">{p.name}</div><div className="text-[10px] text-slate-500 mt-1">{formatRupiah(p.price)}</div></td><td className="p-4 text-cyan-600 font-bold">{p.brand}</td><td className="p-4 text-center"><span className={`px-2 py-1 rounded font-black text-[10px] ${p.stock === 0 ? 'bg-red-50 text-red-500' : p.stock <= 3 ? 'bg-orange-50 text-orange-500' : 'bg-green-50 text-green-600'}`}>{p.stock}</span></td></tr>
                               ))}
                             </tbody>
                           </table>
@@ -713,67 +584,64 @@ ATURAN PENTING:
                   </div>
                 )}
 
-                {/* 2. TAB PRODUCTS */}
+                {/* 2. TAB PRODUCTS (DITAMBAH FITUR DESKRIPSI) */}
                 {adminTab === 'products' && (
                   <div className="bg-white/60 backdrop-blur-xl p-6 sm:p-8 rounded-3xl border border-white shadow-[0_8px_30px_rgba(0,35,69,0.05)] animate-fade-in">
-                    <div className={`bg-white/50 backdrop-blur-md p-4 sm:p-6 rounded-2xl border ${isEditing ? 'border-cyan-400 shadow-sm' : 'border-white/80 shadow-sm'} mb-8 transition-all`}>
+                    <div className={`bg-white/50 backdrop-blur-md p-4 sm:p-6 rounded-2xl border ${isEditing ? 'border-cyan-400' : 'border-white/80'} shadow-sm mb-8 transition-all`}>
                       <h3 className={`text-sm font-bold uppercase tracking-widest mb-4 flex items-center gap-2 ${isEditing ? 'text-cyan-600' : 'text-[#002345]'}`}><i className={`fas ${isEditing ? 'fa-edit' : 'fa-plus-circle'}`}></i> {isEditing ? 'Edit Data Produk' : 'Tambah Produk Baru'}</h3>
                       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4">
-                        <input type="text" placeholder="Nama Produk" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} className="bg-white/80 border border-slate-200 rounded-xl px-4 py-2.5 text-[#002345] text-sm focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 sm:col-span-4" />
-                        <input type="number" placeholder="Harga Jual" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} className="bg-white/80 border border-slate-200 rounded-xl px-4 py-2.5 text-[#002345] text-sm focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20" />
-                        <input type="number" placeholder="Harga Coret (Original)" value={newProduct.originalPrice} onChange={e => setNewProduct({...newProduct, originalPrice: e.target.value})} className="bg-white/80 border border-slate-200 rounded-xl px-4 py-2.5 text-[#002345] text-sm focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20" />
-                        <input type="number" placeholder="Stok Fisik" value={newProduct.stock} onChange={e => setNewProduct({...newProduct, stock: e.target.value})} className="bg-white/80 border border-slate-200 rounded-xl px-4 py-2.5 text-[#002345] text-sm focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20" />
-                        <div className="sm:col-span-4 lg:col-span-1"><input type="text" placeholder="Label Badge (Misal: Best Seller)" value={newProduct.badge} onChange={e => setNewProduct({...newProduct, badge: e.target.value})} className="w-full bg-white/80 border border-slate-200 rounded-xl px-4 py-2.5 text-[#002345] text-sm focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20" /></div>
+                        <input type="text" placeholder="Nama Produk" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} className="bg-white/80 border border-slate-200 rounded-xl px-4 py-2.5 text-[#002345] text-sm focus:outline-none focus:border-cyan-500 sm:col-span-4" />
+                        <input type="number" placeholder="Harga Jual" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} className="bg-white/80 border border-slate-200 rounded-xl px-4 py-2.5 text-[#002345] text-sm focus:outline-none focus:border-cyan-500" />
+                        <input type="number" placeholder="Harga Coret (Original)" value={newProduct.originalPrice} onChange={e => setNewProduct({...newProduct, originalPrice: e.target.value})} className="bg-white/80 border border-slate-200 rounded-xl px-4 py-2.5 text-[#002345] text-sm focus:outline-none focus:border-cyan-500" />
+                        <input type="number" placeholder="Stok Fisik" value={newProduct.stock} onChange={e => setNewProduct({...newProduct, stock: e.target.value})} className="bg-white/80 border border-slate-200 rounded-xl px-4 py-2.5 text-[#002345] text-sm focus:outline-none focus:border-cyan-500" />
+                        <div className="sm:col-span-4 lg:col-span-1"><input type="text" placeholder="Label Badge (Best Seller)" value={newProduct.badge} onChange={e => setNewProduct({...newProduct, badge: e.target.value})} className="w-full bg-white/80 border border-slate-200 rounded-xl px-4 py-2.5 text-[#002345] text-sm focus:outline-none focus:border-cyan-500" /></div>
                         
+                        {/* FORM DESKRIPSI BARU */}
+                        <div className="sm:col-span-4">
+                           <label className="block text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-1">Deskripsi / Spesifikasi Produk</label>
+                           <textarea placeholder="Tuliskan spesifikasi lengkap produk di sini agar pembeli bisa membacanya saat mengklik produk..." value={newProduct.description} onChange={e => setNewProduct({...newProduct, description: e.target.value})} className="w-full bg-white/80 border border-slate-200 rounded-xl px-4 py-3 text-[#002345] focus:outline-none focus:border-cyan-500 h-28 text-sm"></textarea>
+                        </div>
+
                         <div className="sm:col-span-4 bg-white/80 p-3 rounded-xl border border-slate-200 flex flex-col sm:flex-row items-center gap-4">
                           <div className="w-full sm:flex-1"><label className="block text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-1">Upload Gambar Produk</label>
-                            <input type="file" accept="image/*" onChange={(e) => { if(e.target.files[0]) { setNewProduct({...newProduct, imageFile: e.target.files[0], imagePreview: URL.createObjectURL(e.target.files[0])}) } }} className="block w-full text-xs text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-cyan-50 file:text-cyan-600 hover:file:bg-cyan-100 transition-all cursor-pointer" />
+                            <input type="file" accept="image/*" onChange={(e) => { if(e.target.files[0]) { setNewProduct({...newProduct, imageFile: e.target.files[0], imagePreview: URL.createObjectURL(e.target.files[0])}) } }} className="block w-full text-xs text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-cyan-50 file:text-cyan-600 hover:file:bg-cyan-100 cursor-pointer" />
                           </div>
                           {newProduct.imagePreview && <div className="h-16 w-16 bg-white rounded-lg flex-shrink-0 p-1 border border-slate-100"><img src={newProduct.imagePreview} className="w-full h-full object-contain" /></div>}
                         </div>
                         
                         <div className="sm:col-span-2">
-                          <select value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})} className="w-full bg-white/80 border border-slate-200 rounded-xl px-4 py-2.5 text-[#002345] text-sm focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 mb-2">
-                            {categories.slice(1).map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                            <option value="NEW_CATEGORY" className="font-bold">+ Tambah Kategori Baru</option>
+                          <select value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})} className="w-full bg-white/80 border border-slate-200 rounded-xl px-4 py-2.5 text-[#002345] text-sm mb-2">
+                            {categories.slice(1).map(cat => <option key={cat} value={cat}>{cat}</option>)}<option value="NEW_CATEGORY" className="font-bold">+ Tambah Kategori</option>
                           </select>
-                          {newProduct.category === 'NEW_CATEGORY' && <input type="text" placeholder="Ketik nama kategori..." value={newCustomCategory} onChange={e => setNewCustomCategory(e.target.value)} className="w-full bg-white/90 border border-cyan-300 rounded-xl px-4 py-2 text-[#002345] text-sm focus:outline-none focus:border-cyan-500" />}
+                          {newProduct.category === 'NEW_CATEGORY' && <input type="text" placeholder="Kategori baru..." value={newCustomCategory} onChange={e => setNewCustomCategory(e.target.value)} className="w-full bg-white/90 border border-cyan-300 rounded-xl px-4 py-2 text-[#002345] text-sm" />}
                         </div>
                         <div className="sm:col-span-2">
-                          <select value={newProduct.brand} onChange={e => setNewProduct({...newProduct, brand: e.target.value})} className="w-full bg-white/80 border border-slate-200 rounded-xl px-4 py-2.5 text-[#002345] text-sm focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 mb-2">
-                            {brandsList.map(b => <option key={b} value={b}>{b}</option>)}
-                            <option value="NEW_BRAND" className="font-bold">+ Tambah Merek Baru</option>
+                          <select value={newProduct.brand} onChange={e => setNewProduct({...newProduct, brand: e.target.value})} className="w-full bg-white/80 border border-slate-200 rounded-xl px-4 py-2.5 text-[#002345] text-sm mb-2">
+                            {brandsList.map(b => <option key={b} value={b}>{b}</option>)}<option value="NEW_BRAND" className="font-bold">+ Tambah Merek</option>
                           </select>
-                          {newProduct.brand === 'NEW_BRAND' && <input type="text" placeholder="Ketik nama merek..." value={newCustomBrand} onChange={e => setNewCustomBrand(e.target.value)} className="w-full bg-white/90 border border-cyan-300 rounded-xl px-4 py-2 text-[#002345] text-sm focus:outline-none focus:border-cyan-500 uppercase" />}
+                          {newProduct.brand === 'NEW_BRAND' && <input type="text" placeholder="Merek baru..." value={newCustomBrand} onChange={e => setNewCustomBrand(e.target.value)} className="w-full bg-white/90 border border-cyan-300 rounded-xl px-4 py-2 text-[#002345] text-sm uppercase" />}
                         </div>
                         
                         <div className="sm:col-span-4 flex flex-col sm:flex-row gap-4 mt-2">
-                          <button onClick={handleSaveProduct} disabled={isUploading} className="flex-1 bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-bold rounded-xl px-4 py-3 hover:scale-[1.02] transition-transform flex justify-center items-center gap-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
-                            <i className={`fas ${isUploading ? 'fa-spinner fa-spin' : isEditing ? 'fa-save' : 'fa-plus'}`}></i> {isUploading ? 'Menyimpan...' : isEditing ? 'Simpan Perubahan' : 'Tambahkan ke Katalog'}
-                          </button>
-                          {isEditing && <button onClick={handleCancelEdit} disabled={isUploading} className="bg-white/80 border border-red-200 text-red-500 font-bold rounded-xl px-8 py-3 hover:bg-red-50 transition-colors shadow-sm disabled:opacity-50">Batal</button>}
+                          <button onClick={handleSaveProduct} disabled={isUploading} className="flex-1 bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-bold rounded-xl px-4 py-3 shadow-lg disabled:opacity-50"><i className={`fas ${isUploading ? 'fa-spinner fa-spin' : isEditing ? 'fa-save' : 'fa-plus'}`}></i> {isUploading ? 'Menyimpan...' : isEditing ? 'Simpan Perubahan' : 'Tambahkan ke Katalog'}</button>
+                          {isEditing && <button onClick={handleCancelEdit} disabled={isUploading} className="bg-white/80 border border-red-200 text-red-500 font-bold rounded-xl px-8 py-3 hover:bg-red-50 shadow-sm disabled:opacity-50">Batal</button>}
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row gap-4 mb-6 border-t border-white/50 pt-8">
-                      <div className="flex-1 relative"><i className="fas fa-search absolute left-4 top-3.5 text-slate-400"></i><input type="text" placeholder="Cari nama produk yang sudah tayang..." value={adminSearchQuery} onChange={e => setAdminSearchQuery(e.target.value)} className="w-full bg-white/70 backdrop-blur-md border border-white rounded-xl px-4 py-3 pl-11 text-[#002345] text-sm focus:outline-none focus:border-cyan-500 shadow-sm" /></div>
-                      <select value={adminCategoryFilter} onChange={e => setAdminCategoryFilter(e.target.value)} className="bg-white/70 backdrop-blur-md border border-white rounded-xl px-4 py-3 text-[#002345] text-sm focus:outline-none focus:border-cyan-500 sm:w-48 shadow-sm">{categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}</select>
-                    </div>
-
                     <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2 scrollbar-hide">
-                      {filteredAdminProducts.length > 0 ? filteredAdminProducts.map(p => (
-                        <div key={p.id} className="bg-white/70 backdrop-blur-md p-4 rounded-xl flex items-center justify-between gap-4 border border-white shadow-sm hover:shadow-md hover:border-cyan-200 transition-all">
+                      {filteredAdminProducts.map(p => (
+                        <div key={p.id} className="bg-white/70 backdrop-blur-md p-4 rounded-xl flex items-center justify-between gap-4 border border-white shadow-sm hover:shadow-md transition-all">
                           <div className="flex items-center gap-4 flex-1">
-                            <div className="w-14 h-14 bg-white rounded-xl flex-shrink-0 overflow-hidden relative border border-slate-100"><img src={p.image} className="w-full h-full object-contain p-1" /></div>
-                            <div className="flex-1"><div className="text-[#002345] text-sm font-semibold line-clamp-1">{p.name}</div><div className="flex items-center gap-4 mt-1.5"><span className="text-cyan-600 text-xs font-bold">{formatRupiah(p.price)}</span><span className={`text-[10px] px-2 py-0.5 rounded font-bold ${p.stock > 0 ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500'}`}>Stok: {p.stock}</span></div></div>
+                            <div className="w-14 h-14 bg-white rounded-xl overflow-hidden border border-slate-100"><img src={p.image} className="w-full h-full object-contain p-1" /></div>
+                            <div className="flex-1"><div className="text-[#002345] text-sm font-semibold line-clamp-1">{p.name}</div><div className="text-cyan-600 text-xs font-bold">{formatRupiah(p.price)}</div></div>
                           </div>
                           <div className="flex items-center gap-2 flex-shrink-0">
-                            <button onClick={() => handleEditProduct(p)} className="text-cyan-600 hover:text-cyan-700 bg-cyan-50 hover:bg-cyan-100 w-10 h-10 rounded-full flex items-center justify-center transition-colors"><i className="fas fa-edit"></i></button>
-                            <button onClick={() => handleDeleteProduct(p.id)} className="text-red-500 hover:text-red-600 bg-red-50 hover:bg-red-100 w-10 h-10 rounded-full flex items-center justify-center transition-colors"><i className="fas fa-trash"></i></button>
+                            <button onClick={() => handleEditProduct(p)} className="text-cyan-600 bg-cyan-50 hover:bg-cyan-100 w-10 h-10 rounded-full flex items-center justify-center transition-colors"><i className="fas fa-edit"></i></button>
+                            <button onClick={() => handleDeleteProduct(p.id)} className="text-red-500 bg-red-50 hover:bg-red-100 w-10 h-10 rounded-full flex items-center justify-center transition-colors"><i className="fas fa-trash"></i></button>
                           </div>
                         </div>
-                      )) : <div className="text-center py-12 bg-white/50 rounded-xl border border-white shadow-sm"><i className="fas fa-search text-3xl text-slate-300 mb-3"></i><p className="text-slate-500 text-sm">Produk tidak ditemukan.</p></div>}
+                      ))}
                     </div>
                   </div>
                 )}
@@ -781,131 +649,54 @@ ATURAN PENTING:
                 {/* 3. TAB BANNER & LOGO */}
                 {adminTab === 'banner' && (
                   <div className="space-y-8 animate-fade-in">
-                    {/* MANAJEMEN BANNER SLIDER */}
                     <div className="bg-white/60 backdrop-blur-xl p-6 sm:p-8 rounded-3xl border border-white shadow-[0_8px_30px_rgba(0,35,69,0.05)]">
                       <h2 className="text-lg font-bold text-[#002345] mb-6 flex items-center gap-2"><i className="fas fa-images text-cyan-500"></i> Kelola Banner Slider</h2>
-                      <div className={`bg-white/50 backdrop-blur-md p-4 sm:p-6 rounded-2xl border ${editingBannerId ? 'border-cyan-400' : 'border-white/80'} shadow-sm mb-8 transition-all`}>
-                        <h3 className={`text-sm font-bold uppercase tracking-widest mb-6 flex items-center gap-2 ${editingBannerId ? 'text-cyan-600' : 'text-[#002345]'}`}>
-                          <i className={`fas ${editingBannerId ? 'fa-edit' : 'fa-plus-circle'}`}></i> {editingBannerId ? 'Edit Banner' : 'Tambah Banner Baru'}
-                        </h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                          <div><label className="block text-xs uppercase tracking-widest mb-2 text-slate-500 font-bold">Label Atas (Opsional)</label><input type="text" value={bannerForm.badge} onChange={e => setBannerForm({...bannerForm, badge: e.target.value})} className="w-full bg-white/80 border border-slate-200 rounded-xl px-4 py-3 text-[#002345] focus:outline-none focus:border-cyan-500" /></div>
-                          <div><label className="block text-xs uppercase tracking-widest mb-2 text-slate-500 font-bold">Teks Tombol Aksi</label><input type="text" value={bannerForm.buttonText} onChange={e => setBannerForm({...bannerForm, buttonText: e.target.value})} className="w-full bg-white/80 border border-slate-200 rounded-xl px-4 py-3 text-[#002345] focus:outline-none focus:border-cyan-500" /></div>
-                          <div className="sm:col-span-2"><label className="block text-xs uppercase tracking-widest mb-2 text-slate-500 font-bold">Judul Utama Banner</label><input type="text" value={bannerForm.title} onChange={e => setBannerForm({...bannerForm, title: e.target.value})} className="w-full bg-white/80 border border-slate-200 rounded-xl px-4 py-3 text-[#002345] font-bold focus:outline-none focus:border-cyan-500 text-lg" /></div>
-                          <div className="sm:col-span-2"><label className="block text-xs uppercase tracking-widest mb-2 text-slate-500 font-bold">Deskripsi / Sub-judul</label><textarea value={bannerForm.subtitle} onChange={e => setBannerForm({...bannerForm, subtitle: e.target.value})} className="w-full bg-white/80 border border-slate-200 rounded-xl px-4 py-3 text-[#002345] focus:outline-none focus:border-cyan-500 h-24"></textarea></div>
-                          
-                          <div className="sm:col-span-2 bg-white/80 p-4 rounded-xl border border-slate-200 flex flex-col sm:flex-row items-center gap-4">
-                            <div className="w-full sm:flex-1"><label className="block text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-2">Upload Gambar Latar</label>
-                              <input type="file" accept="image/*" onChange={(e) => { if(e.target.files[0]) { setBannerForm({...bannerForm, imageFile: e.target.files[0], imagePreview: URL.createObjectURL(e.target.files[0])}) } }} className="block w-full text-xs text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-cyan-50 file:text-cyan-600 hover:file:bg-cyan-100 transition-all cursor-pointer" />
-                            </div>
-                            {bannerForm.imagePreview && (
-                              <div className="flex flex-col items-center gap-2 flex-shrink-0">
-                                <div className="h-20 w-32 bg-slate-100 rounded-lg overflow-hidden border border-slate-200"><img src={bannerForm.imagePreview} className="w-full h-full object-cover" /></div>
-                                <button onClick={handleRemoveBannerImage} className="text-[10px] text-red-500 hover:text-red-600 underline"><i className="fas fa-times"></i> Hapus Gambar</button>
-                              </div>
-                            )}
-                          </div>
-                          <div className="sm:col-span-2 mt-4 flex flex-col sm:flex-row gap-4">
-                            <button onClick={handleSaveBannerForm} disabled={isUploading} className="flex-1 bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-bold rounded-xl px-8 py-3 hover:scale-[1.02] transition-transform flex justify-center items-center gap-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"><i className={`fas ${isUploading ? 'fa-spinner fa-spin' : 'fa-save'}`}></i> {isUploading ? 'Menyimpan...' : editingBannerId ? 'Simpan Perubahan Banner' : 'Tambah Banner Baru'}</button>
-                            {editingBannerId && <button onClick={() => {setEditingBannerId(null); setBannerForm({badge:'', title:'', subtitle:'', buttonText:'', backgroundImage:'', imageFile:null, imagePreview:null});}} className="bg-white/80 border border-red-200 text-red-500 font-bold rounded-xl px-8 py-3 hover:bg-red-50 transition-colors shadow-sm">Batal</button>}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="space-y-3">
-                        <h3 className="text-sm font-bold uppercase tracking-widest text-[#002345] mb-4">Daftar Banner Tayang</h3>
-                        {banners.map((b, index) => (
-                          <div key={b.id} className="bg-white/70 backdrop-blur-md p-4 rounded-xl flex items-center justify-between gap-4 border border-white shadow-sm hover:shadow-md transition-all">
-                            <div className="flex items-center gap-4 flex-1">
-                              <div className="w-20 h-12 bg-slate-100 rounded-lg flex-shrink-0 overflow-hidden relative border border-slate-200">
-                                {b.backgroundImage ? <img src={b.backgroundImage} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-gradient-to-br from-cyan-200/40 to-purple-300/40"></div>}
-                                <div className="absolute top-0 left-0 bg-[#002345]/80 text-white text-[8px] px-1.5 py-0.5 rounded-br-md">#{index + 1}</div>
-                              </div>
-                              <div className="flex-1"><div className="text-[#002345] text-sm font-semibold line-clamp-1">{b.title || 'Tanpa Judul'}</div><div className="text-[10px] text-slate-500 mt-1">{b.subtitle ? b.subtitle.substring(0, 50) + '...' : 'Tanpa Sub-judul'}</div></div>
-                            </div>
-                            <div className="flex items-center gap-2 flex-shrink-0">
-                              <button onClick={() => handleEditBannerClick(b)} className="text-cyan-600 hover:text-cyan-700 bg-cyan-50 hover:bg-cyan-100 w-10 h-10 rounded-full flex items-center justify-center transition-colors"><i className="fas fa-edit"></i></button>
-                              <button onClick={() => handleDeleteBannerClick(b.id)} className="text-red-500 hover:text-red-600 bg-red-50 hover:bg-red-100 w-10 h-10 rounded-full flex items-center justify-center transition-colors"><i className="fas fa-trash"></i></button>
-                            </div>
-                          </div>
-                        ))}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-8 bg-white/50 p-6 rounded-2xl border border-white/80 shadow-sm">
+                          <input type="text" placeholder="Label Atas" value={bannerForm.badge} onChange={e => setBannerForm({...bannerForm, badge: e.target.value})} className="bg-white/80 border border-slate-200 rounded-xl px-4 py-3 text-[#002345] text-sm" />
+                          <input type="text" placeholder="Teks Tombol" value={bannerForm.buttonText} onChange={e => setBannerForm({...bannerForm, buttonText: e.target.value})} className="bg-white/80 border border-slate-200 rounded-xl px-4 py-3 text-[#002345] text-sm" />
+                          <input type="text" placeholder="Judul Banner" value={bannerForm.title} onChange={e => setBannerForm({...bannerForm, title: e.target.value})} className="bg-white/80 border border-slate-200 rounded-xl px-4 py-3 text-[#002345] font-bold sm:col-span-2 text-lg" />
+                          <textarea placeholder="Deskripsi Singkat" value={bannerForm.subtitle} onChange={e => setBannerForm({...bannerForm, subtitle: e.target.value})} className="bg-white/80 border border-slate-200 rounded-xl px-4 py-3 text-[#002345] sm:col-span-2 h-20"></textarea>
+                          <div className="sm:col-span-2 flex gap-4"><input type="file" accept="image/*" onChange={(e) => { if(e.target.files[0]) setBannerForm({...bannerForm, imageFile: e.target.files[0], imagePreview: URL.createObjectURL(e.target.files[0])}) }} className="w-full text-xs" /></div>
+                          <button onClick={handleSaveBannerForm} disabled={isUploading} className="bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-bold rounded-xl py-3 sm:col-span-2 shadow-lg">Simpan Banner</button>
                       </div>
                     </div>
-
-                    {/* MANAJEMEN SLOT LOGO PARTNER (CARD SYSTEM) */}
                     <div className="bg-white/60 backdrop-blur-xl p-6 sm:p-8 rounded-3xl border border-white shadow-[0_8px_30px_rgba(0,35,69,0.05)]">
-                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-                        <h2 className="text-lg font-bold text-[#002345] flex items-center gap-2"><i className="fas fa-handshake text-cyan-500"></i> Kelola Slot Logo Partner</h2>
-                        <button onClick={handleAddPartnerSlot} className="bg-cyan-50 hover:bg-cyan-100 text-cyan-700 border border-cyan-200 px-4 py-2 rounded-xl text-xs font-bold transition-colors flex items-center gap-2 shadow-sm">
-                          <i className="fas fa-plus"></i> Tambah Slot
-                        </button>
-                      </div>
-                      
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+                      <h2 className="text-lg font-bold text-[#002345] flex items-center gap-2 mb-6"><i className="fas fa-handshake text-cyan-500"></i> Slot Logo Partner</h2>
+                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
                         {partnerLogos.map((p, index) => (
-                          <div key={p.id} className="bg-white/70 backdrop-blur-md p-4 rounded-2xl border border-white shadow-sm flex flex-col gap-3 group relative hover:border-cyan-300 hover:shadow-md transition-all">
-                            <div className="absolute -top-2 -left-2 w-6 h-6 bg-gradient-to-r from-cyan-500 to-purple-600 rounded-full flex items-center justify-center text-[10px] font-bold text-white shadow-lg z-10">{index + 1}</div>
-                            
-                            {/* Area Gambar dengan Hover Upload */}
-                            <div className="h-16 bg-white rounded-xl flex items-center justify-center relative overflow-hidden border border-slate-100 group-hover:border-cyan-300 transition-colors">
-                              {p.logo ? (
-                                 <img src={p.logo} alt={p.name} className="h-full w-full object-contain p-2" />
-                              ) : (
-                                 <div className="text-slate-300 text-[10px] font-black uppercase tracking-widest text-center px-2">KOSONG</div>
-                              )}
-                              {/* Hover Overlay Upload */}
-                              <label className="absolute inset-0 bg-white/90 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer backdrop-blur-sm z-20">
-                                 <i className="fas fa-upload text-cyan-600 mb-1"></i>
-                                 <span className="text-cyan-600 text-[9px] font-bold uppercase">Upload</span>
+                          <div key={p.id} className="bg-white/70 p-4 rounded-2xl border border-white shadow-sm flex flex-col gap-3 group relative">
+                            <div className="h-16 bg-white rounded-xl flex items-center justify-center relative overflow-hidden border border-slate-100">
+                              {p.logo ? <img src={p.logo} alt={p.name} className="h-full w-full object-contain p-2" /> : <div className="text-slate-300 text-[10px] font-black uppercase text-center">KOSONG</div>}
+                              <label className="absolute inset-0 bg-white/90 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer z-20">
+                                 <span className="text-cyan-600 text-[9px] font-bold uppercase"><i className="fas fa-upload"></i> Upload</span>
                                  <input type="file" accept="image/*" className="hidden" onChange={e => handleImageSelectPartner(p.id, e.target.files[0])} />
                               </label>
                             </div>
-                            
-                            {/* Input Nama Auto-Save */}
-                            <input 
-                              type="text" 
-                              value={p.name} 
-                              onChange={e => handleNameChangePartner(p.id, e.target.value)} 
-                              onBlur={handleSavePartnersDB} 
-                              placeholder="Nama Brand" 
-                              className="bg-transparent border-b border-slate-200 text-[#002345] text-[10px] px-1 py-1 focus:border-cyan-500 focus:outline-none text-center w-full uppercase tracking-wider transition-colors" 
-                            />
-                            
-                            <div className="flex justify-between items-center mt-auto pt-2 border-t border-slate-100">
-                               <button onClick={() => handleClearPartnerImage(p.id)} title="Hapus Foto Saja" className="text-orange-500 hover:text-orange-600 text-[9px] p-1 transition-colors"><i className="fas fa-eraser mr-1"></i> Foto</button>
-                               <button onClick={() => handleDeletePartnerSlot(p.id)} disabled={partnerLogos.length <= 5} title="Hapus Kotak Slot" className="text-red-500 hover:text-red-600 text-[9px] p-1 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"><i className="fas fa-trash mr-1"></i> Slot</button>
+                            <input type="text" value={p.name} onChange={e => handleNameChangePartner(p.id, e.target.value)} onBlur={handleSavePartnersDB} placeholder="Nama Brand" className="bg-transparent border-b border-slate-200 text-[#002345] text-[10px] py-1 focus:outline-none text-center w-full uppercase" />
+                            <div className="flex justify-between mt-auto pt-2 border-t border-slate-100">
+                               <button onClick={() => handleClearPartnerImage(p.id)} className="text-orange-500 text-[9px] p-1"><i className="fas fa-eraser"></i> Foto</button>
+                               <button onClick={() => handleDeletePartnerSlot(p.id)} disabled={partnerLogos.length <= 5} className="text-red-500 text-[9px] p-1 disabled:opacity-30"><i className="fas fa-trash"></i> Slot</button>
                             </div>
                           </div>
                         ))}
                       </div>
-                      <p className="text-slate-500 text-[10px] mt-6 italic bg-white/50 backdrop-blur-sm p-3 rounded-lg border border-white shadow-sm"><i className="fas fa-info-circle text-cyan-500 mr-2"></i> Sistem secara otomatis mewajibkan minimal ada 5 slot. Jika Anda tidak mengupload foto, akan muncul placeholder bingkai elegan bertuliskan nama brand di halaman depan pembeli. (Perubahan nama brand otomatis tersimpan saat Anda mengetik).</p>
                     </div>
-
                   </div>
                 )}
               </div>
 
-              {/* TOAST NOTIFICATION - LIGHT GLASS */}
+              {/* TOAST & MODAL */}
               {toast.show && (
                 <div className={`fixed top-4 right-4 z-[100] px-6 py-3 rounded-xl shadow-xl border backdrop-blur-xl flex items-center gap-3 animate-fade-in ${toast.type === 'error' ? 'bg-white/90 border-red-200 text-red-600' : 'bg-white/90 border-green-200 text-green-600'}`}>
-                  <i className={`fas ${toast.type === 'error' ? 'fa-exclamation-circle' : 'fa-check-circle'}`}></i>
-                  <span className="text-sm font-bold">{toast.message}</span>
+                  <i className={`fas ${toast.type === 'error' ? 'fa-exclamation-circle' : 'fa-check-circle'}`}></i><span className="text-sm font-bold">{toast.message}</span>
                 </div>
               )}
-
-              {/* CONFIRM MODAL KUSTOM - LIGHT GLASS */}
               {confirmModal.show && (
                 <div className="fixed inset-0 z-[100] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
                   <div className="bg-white/90 backdrop-blur-2xl border border-white p-6 rounded-3xl shadow-[0_30px_60px_rgba(0,35,69,0.15)] max-w-sm w-full text-center animate-fade-in">
-                    <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <i className="fas fa-exclamation-triangle text-2xl"></i>
-                    </div>
-                    <h3 className="text-[#002345] font-bold mb-2">Konfirmasi Hapus</h3>
-                    <p className="text-slate-500 text-sm mb-6">{confirmModal.message}</p>
-                    <div className="flex gap-3">
-                      <button onClick={handleConfirmNo} className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl py-2.5 text-sm font-bold transition-colors">Batal</button>
-                      <button onClick={handleConfirmYes} className="flex-1 bg-red-500 text-white rounded-xl py-2.5 text-sm font-bold shadow-lg shadow-red-500/30 hover:bg-red-600 transition-colors">Ya, Hapus</button>
-                    </div>
+                    <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4"><i className="fas fa-exclamation-triangle text-2xl"></i></div>
+                    <h3 className="text-[#002345] font-bold mb-2">Konfirmasi Hapus</h3><p className="text-slate-500 text-sm mb-6">{confirmModal.message}</p>
+                    <div className="flex gap-3"><button onClick={handleConfirmNo} className="flex-1 bg-slate-100 text-slate-700 rounded-xl py-2.5 text-sm font-bold">Batal</button><button onClick={handleConfirmYes} className="flex-1 bg-red-500 text-white rounded-xl py-2.5 text-sm font-bold shadow-lg">Hapus</button></div>
                   </div>
                 </div>
               )}
@@ -914,10 +705,10 @@ ATURAN PENTING:
         }
 
         // ==========================================
-        // TAMPILAN USER (KATALOG)
+        // TAMPILAN USER (KATALOG & DETAIL PRODUK)
         // ==========================================
         return (
-          <div className="font-sans text-gray-800 relative">
+          <div className="font-sans text-gray-800 relative bg-[#F7F5FA] min-h-screen flex flex-col">
             
             {/* FLOATING BUTTON UNTUK AI CHAT */}
             <button onClick={() => setIsChatOpen(!isChatOpen)} className={`fixed bottom-6 right-6 z-50 bg-gradient-to-r from-cyan-400 to-purple-500 text-white p-4 rounded-full shadow-[0_8px_30px_rgba(168,85,247,0.4)] hover:scale-110 hover:shadow-[0_8px_40px_rgba(34,211,238,0.6)] transition-all duration-300 group flex items-center justify-center w-14 h-14 ${isChatOpen ? 'rotate-180 bg-red-500 from-red-500 to-rose-600' : ''}`}>
@@ -928,66 +719,32 @@ ATURAN PENTING:
             {/* JENDELA AI CHAT BUBBLE */}
             {isChatOpen && (
               <div className="fixed bottom-24 right-6 w-[340px] sm:w-[380px] h-[500px] bg-[#1A0B2E] border border-cyan-500/30 rounded-3xl shadow-[0_10px_50px_rgba(26,11,46,0.9)] z-50 flex flex-col overflow-hidden animate-fade-in flex-shrink-0">
-                {/* Header Chat */}
                 <div className="bg-[#0D0518] text-white p-4 flex justify-between items-center border-b border-cyan-500/20">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-cyan-500/20 rounded-full flex items-center justify-center border border-cyan-500/50">
-                      <i className="fas fa-robot text-cyan-400 text-lg"></i>
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-sm text-cyan-400 uppercase tracking-widest">STM AI Sales</h3>
-                      <p className="text-[9px] text-green-400 flex items-center gap-1"><span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span> Online 24/7</p>
-                    </div>
+                    <div className="w-10 h-10 bg-cyan-500/20 rounded-full flex items-center justify-center border border-cyan-500/50"><i className="fas fa-robot text-cyan-400 text-lg"></i></div>
+                    <div><h3 className="font-bold text-sm text-cyan-400 uppercase tracking-widest">STM AI Sales</h3><p className="text-[9px] text-green-400 flex items-center gap-1"><span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span> Online 24/7</p></div>
                   </div>
                   <button onClick={() => setIsChatOpen(false)} className="text-slate-400 hover:text-red-400 transition-colors"><i className="fas fa-times"></i></button>
                 </div>
 
-                {/* Area Pesan */}
                 <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-gradient-to-b from-[#1A0B2E] to-[#0D0518]">
                   {chatMessages.map((msg, idx) => (
                     <div key={idx} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-                      <div className={`p-3 max-w-[85%] rounded-2xl text-xs sm:text-sm shadow-md whitespace-pre-wrap ${msg.role === 'user' ? 'bg-gradient-to-r from-purple-600 to-cyan-600 text-white rounded-tr-sm' : 'bg-white/10 text-slate-200 border border-white/5 rounded-tl-sm'}`}>
-                        {msg.text}
-                      </div>
+                      <div className={`p-3 max-w-[85%] rounded-2xl text-xs sm:text-sm shadow-md whitespace-pre-wrap ${msg.role === 'user' ? 'bg-gradient-to-r from-purple-600 to-cyan-600 text-white rounded-tr-sm' : 'bg-white/10 text-slate-200 border border-white/5 rounded-tl-sm'}`}>{msg.text}</div>
                       <span className="text-[8px] text-slate-500 mt-1">{msg.role === 'user' ? 'Anda' : 'AI Assistant'}</span>
                     </div>
                   ))}
-                  {isTyping && (
-                    <div className="flex items-start">
-                      <div className="bg-white/10 p-3 rounded-2xl rounded-tl-sm border border-white/5 flex gap-1">
-                        <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-bounce"></span>
-                        <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></span>
-                        <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-bounce" style={{animationDelay: '0.4s'}}></span>
-                      </div>
-                    </div>
-                  )}
+                  {isTyping && (<div className="flex items-start"><div className="bg-white/10 p-3 rounded-2xl rounded-tl-sm border border-white/5 flex gap-1"><span className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-bounce"></span><span className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></span><span className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-bounce" style={{animationDelay: '0.4s'}}></span></div></div>)}
                   <div ref={chatEndRef}></div>
                 </div>
 
-                {/* Tombol Darurat ke Admin Asli */}
                 <div className="bg-[#0D0518] px-4 py-2 border-t border-white/5 flex justify-center">
-                  <button onClick={() => handleWhatsAppClick()} className="text-[10px] text-cyan-400 hover:text-cyan-300 font-bold uppercase tracking-widest flex items-center gap-2">
-                    <i className="fab fa-whatsapp text-green-400 text-sm"></i> Chat dengan Admin Manusia
-                  </button>
+                  <button onClick={() => handleWhatsAppClick()} className="text-[10px] text-cyan-400 hover:text-cyan-300 font-bold uppercase tracking-widest flex items-center gap-2"><i className="fab fa-whatsapp text-green-400 text-sm"></i> Chat dengan Admin Manusia</button>
                 </div>
 
-                {/* Area Input Chat */}
                 <div className="p-3 bg-[#0D0518] border-t border-purple-500/20 flex gap-2">
-                  <input 
-                    type="text" 
-                    placeholder="Tanya rekomendasi produk..." 
-                    value={chatInput}
-                    onChange={(e) => setChatInput(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleSendChatMessage()}
-                    className="bg-[#1A0B2E] border border-purple-500/30 rounded-xl px-4 py-2.5 text-white text-xs focus:outline-none focus:border-cyan-400 w-full"
-                  />
-                  <button 
-                    onClick={handleSendChatMessage}
-                    disabled={!chatInput.trim() || isTyping}
-                    className="bg-cyan-500 hover:bg-cyan-400 text-[#0D0518] w-10 h-10 rounded-xl flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <i className="fas fa-paper-plane"></i>
-                  </button>
+                  <input type="text" placeholder="Tanya rekomendasi produk..." value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleSendChatMessage()} className="bg-[#1A0B2E] border border-purple-500/30 rounded-xl px-4 py-2.5 text-white text-xs focus:outline-none focus:border-cyan-400 w-full" />
+                  <button onClick={handleSendChatMessage} disabled={!chatInput.trim() || isTyping} className="bg-cyan-500 hover:bg-cyan-400 text-[#0D0518] w-10 h-10 rounded-xl flex items-center justify-center transition-colors disabled:opacity-50"><i className="fas fa-paper-plane"></i></button>
                 </div>
               </div>
             )}
@@ -996,7 +753,7 @@ ATURAN PENTING:
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between gap-3 sm:gap-6">
                   
-                  <div className="flex items-center gap-3 sm:gap-4 cursor-pointer group flex-shrink-0">
+                  <div className="flex items-center gap-3 sm:gap-4 cursor-pointer group flex-shrink-0" onClick={() => { setSelectedProduct(null); setView('catalog'); }}>
                     <img src="https://drive.google.com/thumbnail?id=1WLxFwy421QxxzZ4vfwfozlWSUT1qMZgr&sz=w800" alt="SMART TECHNOLOGY MANDIRI" onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/400x100/1A0B2E/a855f7?text=SMART+TECH'; }} className="h-8 sm:h-12 object-contain group-hover:scale-105 transition-transform duration-300 drop-shadow-[0_0_12px_rgba(168,85,247,0.4)]" />
                     <div className="hidden sm:block border-l-2 border-purple-500/30 pl-4 py-1">
                       <h1 className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-400 font-bold tracking-widest text-sm uppercase flex items-center gap-2"><i className="fas fa-bolt text-yellow-400 text-xs"></i> KATALOG RESMI</h1>
@@ -1005,7 +762,6 @@ ATURAN PENTING:
                   </div>
 
                   <div className="flex items-center gap-3 sm:gap-6 flex-1 justify-end">
-                    {/* BAR PENCARIAN USER */}
                     <div className="relative group flex-1 max-w-[200px] sm:max-w-xs">
                       <div className="flex items-center bg-white/5 rounded-full border border-white/10 px-3 py-1.5 sm:px-4 sm:py-2 w-full focus-within:bg-[#0D0518] focus-within:border-cyan-400 transition-all duration-300">
                         <i className="fas fa-search text-slate-400 text-[10px] sm:text-xs mr-2 sm:mr-3 group-focus-within:text-cyan-400"></i>
@@ -1015,6 +771,7 @@ ATURAN PENTING:
                           value={searchQuery}
                           onChange={(e) => {
                             setSearchQuery(e.target.value);
+                            if(selectedProduct) setSelectedProduct(null); // Tutup detail kalau lagi nyari
                             if(e.target.value !== '' && window.scrollY < 300) {
                               document.getElementById('katalog-produk')?.scrollIntoView({ behavior: 'smooth' });
                             }
@@ -1022,9 +779,7 @@ ATURAN PENTING:
                           className="bg-transparent border-none outline-none text-[10px] sm:text-xs text-white w-full placeholder-slate-400/70"
                         />
                         {searchQuery && (
-                          <button onClick={() => setSearchQuery('')} className="text-slate-400 hover:text-red-400 ml-1 sm:ml-2 transition-colors flex-shrink-0">
-                            <i className="fas fa-times text-[10px] sm:text-xs"></i>
-                          </button>
+                          <button onClick={() => setSearchQuery('')} className="text-slate-400 hover:text-red-400 ml-1 sm:ml-2 transition-colors flex-shrink-0"><i className="fas fa-times text-[10px] sm:text-xs"></i></button>
                         )}
                       </div>
                     </div>
@@ -1039,124 +794,176 @@ ATURAN PENTING:
               </div>
             </header>
 
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12">
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow">
               
-              {/* CURRENT BANNER RENDER (AUTO SLIDE) */}
-              {(() => {
-                const currentBanner = banners[currentBannerIndex] || banners[0] || {};
-                return (
-                  <section className="relative rounded-3xl overflow-hidden shadow-[0_20px_50px_-12px_rgba(26,11,46,0.5)] h-64 sm:h-[450px] w-full flex items-center justify-center bg-gradient-to-br from-[#0D0518] via-[#1A0B2E] to-[#2D1650] text-white group" style={currentBanner.backgroundImage ? { backgroundImage: `url(${currentBanner.backgroundImage})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}>
-                    {currentBanner.backgroundImage && <div className="absolute inset-0 bg-[#0D0518]/70 mix-blend-multiply z-0"></div>}
-                    {!currentBanner.backgroundImage && (
-                      <React.Fragment>
-                        <div className="absolute top-0 left-1/4 w-64 h-64 bg-cyan-500/20 rounded-full blur-[80px] mix-blend-screen group-hover:scale-150 transition-transform duration-1000 z-0"></div>
-                        <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-purple-600/30 rounded-full blur-[80px] mix-blend-screen group-hover:scale-150 transition-transform duration-1000 delay-100 z-0"></div>
-                      </React.Fragment>
-                    )}
+              {/* --- TAMPILAN HALAMAN DETAIL PRODUK --- */}
+              {selectedProduct ? (
+                <div className="animate-fade-in bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-100 mb-12 flex flex-col md:flex-row">
+                  {/* Bagian Kiri: Gambar Produk */}
+                  <div className="md:w-1/2 bg-slate-50 p-8 sm:p-12 flex flex-col justify-center relative border-r border-slate-100">
+                    <button onClick={() => setSelectedProduct(null)} className="absolute top-6 left-6 w-10 h-10 bg-white shadow-md border border-slate-100 rounded-full flex items-center justify-center text-slate-600 hover:text-purple-600 hover:-translate-x-1 transition-all z-20">
+                      <i className="fas fa-arrow-left"></i>
+                    </button>
+                    {selectedProduct.badge && <span className="absolute top-6 right-6 bg-gradient-to-r from-cyan-400 to-purple-500 text-white text-[10px] font-bold px-4 py-2 rounded-full shadow-md z-10 uppercase tracking-widest">{selectedProduct.badge}</span>}
                     
-                    <div key={currentBanner.id} className="relative z-10 text-center px-6 flex flex-col items-center animate-fade-in w-full">
-                      {currentBanner.badge && <button onClick={scrollToKatalog} className="inline-block border border-purple-500/50 text-cyan-400 hover:bg-purple-500/20 hover:text-white hover:scale-105 transition-all duration-300 text-xs px-4 py-1.5 mb-6 rounded-full tracking-widest uppercase bg-white/5 backdrop-blur-md shadow-lg">{currentBanner.badge}</button>}
-                      <h1 className="text-4xl sm:text-7xl font-black mb-4 tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-white to-purple-300 drop-shadow-sm">{currentBanner.title}</h1>
-                      <p className="text-sm sm:text-xl text-purple-200/80 font-light mb-8 tracking-wide max-w-xl whitespace-pre-wrap">{currentBanner.subtitle}</p>
-                      {currentBanner.buttonText && <button onClick={scrollToKatalog} className="bg-gradient-to-r from-cyan-400 to-purple-500 text-white font-bold py-3 px-8 rounded-full transition-all duration-300 shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:shadow-[0_0_30px_rgba(34,211,238,0.6)] hover:scale-105 flex items-center gap-2 uppercase tracking-widest text-sm">{currentBanner.buttonText} <i className="fas fa-arrow-right ml-1"></i></button>}
+                    <div className="w-full aspect-square relative flex items-center justify-center">
+                       <img src={selectedProduct.image} className="max-w-full max-h-full object-contain drop-shadow-xl hover:scale-105 transition-transform duration-500" alt={selectedProduct.name} />
+                    </div>
+                  </div>
+
+                  {/* Bagian Kanan: Info Produk & Deskripsi */}
+                  <div className="md:w-1/2 p-6 sm:p-12 flex flex-col bg-white relative">
+                    <div className="inline-block bg-purple-50 text-purple-600 px-3 py-1 rounded font-bold text-xs tracking-widest uppercase w-fit mb-4 border border-purple-100">{selectedProduct.brand}</div>
+                    <h1 className="text-2xl sm:text-4xl font-black text-[#1A0B2E] leading-tight mb-4">{selectedProduct.name}</h1>
+                    
+                    <div className="flex items-center gap-4 mb-6">
+                      <span className="text-3xl font-black text-cyan-600 drop-shadow-sm">{formatRupiah(selectedProduct.price)}</span>
+                      {selectedProduct.originalPrice > selectedProduct.price && (
+                        <span className="text-sm text-slate-400 line-through">{formatRupiah(selectedProduct.originalPrice)}</span>
+                      )}
                     </div>
 
-                    {/* Dots Indicator */}
-                    {banners.length > 1 && (
-                      <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-2 z-20">
-                        {banners.map((_, idx) => (
-                          <button key={idx} onClick={() => setCurrentBannerIndex(idx)} className={`transition-all duration-300 rounded-full ${currentBannerIndex === idx ? 'w-8 h-2 bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.8)]' : 'w-2 h-2 bg-white/30 hover:bg-white/50'}`}></button>
-                        ))}
-                      </div>
-                    )}
-                  </section>
-                );
-              })()}
+                    <div className="bg-slate-50 border border-slate-100 rounded-2xl p-6 mb-8 flex-1">
+                      <h3 className="font-bold text-[#1A0B2E] mb-4 uppercase text-xs tracking-widest flex items-center gap-2 border-b border-slate-200 pb-3"><i className="fas fa-list text-cyan-500"></i> Spesifikasi & Deskripsi Lengkap</h3>
+                      <p className="text-slate-600 text-sm whitespace-pre-wrap leading-relaxed font-medium">
+                        {selectedProduct.description || "Deskripsi lengkap untuk produk ini belum tersedia. Silakan hubungi admin untuk informasi spesifikasi lebih lanjut."}
+                      </p>
+                    </div>
 
-              {/* PARTNER LOGO SLIDER (MARQUEE) DENGAN PLACEHOLDER ESTETIK */}
-              {partnerLogos.length > 0 && (
-                <section className="relative w-full overflow-hidden bg-white/5 py-8 border-y border-white/5 backdrop-blur-sm -mt-6 rounded-3xl z-10 shadow-inner">
-                   <div className="animate-marquee flex items-center">
-                      {[...partnerLogos, ...partnerLogos, ...partnerLogos].map((l, i) => (
-                        <div key={`${l.id}-${i}`} className="mx-6 sm:mx-10 h-10 sm:h-12 flex items-center opacity-50 hover:opacity-100 transition-opacity grayscale hover:grayscale-0 flex-shrink-0 cursor-default">
-                          {l.logo ? (
-                            <img src={l.logo} alt={l.name} className="h-full object-contain drop-shadow-md" />
-                          ) : (
-                            <div className="h-full px-6 flex items-center justify-center border-2 border-dashed border-white/30 rounded-lg text-white/50 font-bold uppercase tracking-widest text-[10px] whitespace-nowrap bg-black/20 hover:bg-white/5 transition-colors">
-                              {l.name}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                   </div>
-                </section>
-              )}
-
-              <section className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
-                {[ { icon: 'fa-shield-alt', title: 'Garansi Resmi', desc: '100% Original' }, { icon: 'fa-truck', title: 'Gratis Ongkir', desc: 'Aman & Cepat' }, { icon: 'fa-headphones', title: 'Layanan 24/7', desc: 'Teknisi Handal' } ].map((feat, i) => (
-                  <div key={i} className="bg-white p-6 rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-purple-300 transition-all duration-300 flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-4 border border-slate-100 group cursor-default">
-                    <div className="bg-purple-50 text-[#1A0B2E] w-12 h-12 flex items-center justify-center rounded-full group-hover:bg-gradient-to-br group-hover:from-cyan-400 group-hover:to-purple-500 group-hover:text-white group-hover:shadow-[0_0_15px_rgba(168,85,247,0.4)] transition-all duration-300"><i className={`fas ${feat.icon} text-xl`}></i></div>
-                    <div><h3 className="font-bold text-sm text-[#1A0B2E] tracking-wide uppercase mb-1">{feat.title}</h3><p className="text-xs text-slate-500">{feat.desc}</p></div>
-                  </div>
-                ))}
-              </section>
-
-              <section id="katalog-produk">
-                <div className="flex mb-6">
-                  <div className="flex gap-4 overflow-x-auto py-4 px-2 -mx-2 scrollbar-hide w-full items-center">
-                    {categories.map(cat => <button key={cat} onClick={() => setActiveCategory(cat)} className={`px-6 py-2.5 rounded-full text-xs font-bold tracking-wider uppercase whitespace-nowrap transition-all duration-300 flex-shrink-0 ${activeCategory === cat ? 'bg-gradient-to-r from-cyan-500 to-purple-600 text-white shadow-[0_4px_15px_rgba(168,85,247,0.3)] scale-105' : 'bg-white text-slate-500 border border-slate-200 hover:border-purple-400 hover:text-[#1A0B2E]'}`}>{cat}</button>)}
+                    <div className="mt-auto pt-6 border-t border-slate-100 flex flex-col sm:flex-row gap-4">
+                       {selectedProduct.stock > 0 ? (
+                         <button onClick={() => handleWhatsAppClick(selectedProduct)} className="w-full bg-gradient-to-r from-cyan-400 to-purple-600 text-white font-bold rounded-xl py-4 hover:scale-[1.02] shadow-[0_10px_20px_rgba(168,85,247,0.3)] hover:shadow-[0_10px_30px_rgba(34,211,238,0.4)] transition-all flex items-center justify-center gap-2 uppercase tracking-widest text-sm">
+                           <i className="fab fa-whatsapp text-xl"></i> Tanya via WhatsApp
+                         </button>
+                       ) : (
+                         <div className="w-full bg-red-50 text-red-500 px-6 py-4 rounded-xl font-bold flex items-center justify-center gap-2 border border-red-100 uppercase tracking-widest">
+                           <i className="fas fa-times-circle text-lg"></i> Stok Habis (Kosong)
+                         </div>
+                       )}
+                    </div>
                   </div>
                 </div>
+              ) : (
+                /* --- TAMPILAN HALAMAN UTAMA (KATALOG) --- */
+                <div className="space-y-12">
+                  {/* BANNER RENDER */}
+                  {(() => {
+                    const currentBanner = banners[currentBannerIndex] || banners[0] || {};
+                    return (
+                      <section className="relative rounded-3xl overflow-hidden shadow-[0_20px_50px_-12px_rgba(26,11,46,0.5)] h-64 sm:h-[450px] w-full flex items-center justify-center bg-gradient-to-br from-[#0D0518] via-[#1A0B2E] to-[#2D1650] text-white group" style={currentBanner.backgroundImage ? { backgroundImage: `url(${currentBanner.backgroundImage})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}>
+                        {currentBanner.backgroundImage && <div className="absolute inset-0 bg-[#0D0518]/70 mix-blend-multiply z-0"></div>}
+                        {!currentBanner.backgroundImage && (
+                          <React.Fragment>
+                            <div className="absolute top-0 left-1/4 w-64 h-64 bg-cyan-500/20 rounded-full blur-[80px] mix-blend-screen group-hover:scale-150 transition-transform duration-1000 z-0"></div>
+                            <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-purple-600/30 rounded-full blur-[80px] mix-blend-screen group-hover:scale-150 transition-transform duration-1000 delay-100 z-0"></div>
+                          </React.Fragment>
+                        )}
+                        
+                        <div key={currentBanner.id} className="relative z-10 text-center px-6 flex flex-col items-center animate-fade-in w-full">
+                          {currentBanner.badge && <button onClick={scrollToKatalog} className="inline-block border border-purple-500/50 text-cyan-400 hover:bg-purple-500/20 hover:text-white hover:scale-105 transition-all duration-300 text-xs px-4 py-1.5 mb-6 rounded-full tracking-widest uppercase bg-white/5 backdrop-blur-md shadow-lg">{currentBanner.badge}</button>}
+                          <h1 className="text-4xl sm:text-7xl font-black mb-4 tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-white to-purple-300 drop-shadow-sm">{currentBanner.title}</h1>
+                          <p className="text-sm sm:text-xl text-purple-200/80 font-light mb-8 tracking-wide max-w-xl whitespace-pre-wrap">{currentBanner.subtitle}</p>
+                          {currentBanner.buttonText && <button onClick={scrollToKatalog} className="bg-gradient-to-r from-cyan-400 to-purple-500 text-white font-bold py-3 px-8 rounded-full transition-all duration-300 shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:shadow-[0_0_30px_rgba(34,211,238,0.6)] hover:scale-105 flex items-center gap-2 uppercase tracking-widest text-sm">{currentBanner.buttonText} <i className="fas fa-arrow-right ml-1"></i></button>}
+                        </div>
 
-                {filteredProducts.length > 0 ? (
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-8">
-                    {filteredProducts.map((product) => (
-                      <div key={product.id} className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-[0_15px_40px_-10px_rgba(168,85,247,0.2)] hover:-translate-y-2 hover:border-purple-300 transition-all duration-500 group flex flex-col h-full relative cursor-pointer">
-                        <div className="relative aspect-[4/3] overflow-hidden bg-slate-50 p-6 flex items-center justify-center">
-                          {product.badge && <span className="absolute top-4 left-4 bg-gradient-to-r from-cyan-400 to-purple-500 text-white text-[10px] font-bold px-3 py-1.5 rounded-full z-10 uppercase tracking-widest shadow-md">{product.badge}</span>}
-                          <img src={product.image} className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-700 ease-out" />
-                        </div>
-                        <div className="p-6 flex flex-col flex-grow bg-white z-20">
-                          <div className="text-[10px] text-purple-600 tracking-widest uppercase mb-2 font-bold bg-purple-50 inline-block px-2 py-1 rounded w-fit">{product.brand}</div>
-                          <h3 className="font-semibold text-[15px] text-[#1A0B2E] line-clamp-2 mb-4 group-hover:text-purple-600 transition-colors leading-relaxed">{product.name}</h3>
-                          <div className="mt-auto pt-4 border-t border-slate-50">
-                            <div className="flex items-center gap-2 mb-1"><span className="text-xs text-slate-400 line-through">{formatRupiah(product.originalPrice)}</span></div>
-                            <div className="text-xl font-black text-[#1A0B2E] mb-4 tracking-tight group-hover:scale-105 origin-left transition-transform duration-300">{formatRupiah(product.price)}</div>
-                            {product.stock > 0 ? (
-                              <button onClick={() => handleWhatsAppClick(product)} className="w-full py-3 px-4 bg-[#F7F5FA] text-[#1A0B2E] border border-purple-200/50 text-xs font-bold uppercase tracking-widest rounded-xl group-hover:bg-[#1A0B2E] group-hover:text-white transition-all flex items-center justify-center gap-2"><i className="fas fa-comment-dots"></i> Tanya Stok</button>
-                            ) : (
-                              <button disabled className="w-full py-3 px-4 bg-slate-100 text-slate-400 border border-slate-200/50 text-xs font-bold uppercase tracking-widest rounded-xl flex items-center justify-center gap-2 cursor-not-allowed"><i className="fas fa-times-circle"></i> Stok Kosong</button>
-                            )}
+                        {banners.length > 1 && (
+                          <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-2 z-20">
+                            {banners.map((_, idx) => (
+                              <button key={idx} onClick={() => setCurrentBannerIndex(idx)} className={`transition-all duration-300 rounded-full ${currentBannerIndex === idx ? 'w-8 h-2 bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.8)]' : 'w-2 h-2 bg-white/30 hover:bg-white/50'}`}></button>
+                            ))}
                           </div>
-                        </div>
+                        )}
+                      </section>
+                    );
+                  })()}
+
+                  {/* PARTNER LOGO SLIDER (MARQUEE) */}
+                  {partnerLogos.length > 0 && (
+                    <section className="relative w-full overflow-hidden bg-white/5 py-8 border-y border-white/5 backdrop-blur-sm -mt-6 rounded-3xl z-10 shadow-inner">
+                       <div className="animate-marquee flex items-center">
+                          {[...partnerLogos, ...partnerLogos, ...partnerLogos].map((l, i) => (
+                            <div key={`${l.id}-${i}`} className="mx-6 sm:mx-10 h-10 sm:h-12 flex items-center opacity-50 hover:opacity-100 transition-opacity grayscale hover:grayscale-0 flex-shrink-0 cursor-default">
+                              {l.logo ? (
+                                <img src={l.logo} alt={l.name} className="h-full object-contain drop-shadow-md" />
+                              ) : (
+                                <div className="h-full px-6 flex items-center justify-center border-2 border-dashed border-white/30 rounded-lg text-white/50 font-bold uppercase tracking-widest text-[10px] whitespace-nowrap bg-black/20 hover:bg-white/5 transition-colors">
+                                  {l.name}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                       </div>
+                    </section>
+                  )}
+
+                  {/* FEATURES */}
+                  <section className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+                    {[ { icon: 'fa-shield-alt', title: 'Garansi Resmi', desc: '100% Original' }, { icon: 'fa-truck', title: 'Gratis Ongkir', desc: 'Aman & Cepat' }, { icon: 'fa-headphones', title: 'Layanan 24/7', desc: 'Teknisi Handal' } ].map((feat, i) => (
+                      <div key={i} className="bg-white p-6 rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-purple-300 transition-all duration-300 flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-4 border border-slate-100 group cursor-default">
+                        <div className="bg-purple-50 text-[#1A0B2E] w-12 h-12 flex items-center justify-center rounded-full group-hover:bg-gradient-to-br group-hover:from-cyan-400 group-hover:to-purple-500 group-hover:text-white group-hover:shadow-[0_0_15px_rgba(168,85,247,0.4)] transition-all duration-300"><i className={`fas ${feat.icon} text-xl`}></i></div>
+                        <div><h3 className="font-bold text-sm text-[#1A0B2E] tracking-wide uppercase mb-1">{feat.title}</h3><p className="text-xs text-slate-500">{feat.desc}</p></div>
                       </div>
                     ))}
-                  </div>
-                ) : <div className="text-center py-24 bg-white rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center"><div className="w-24 h-24 bg-purple-50 rounded-full flex items-center justify-center mb-6"><i className="fas fa-desktop text-4xl text-purple-300"></i></div><h3 className="text-xl font-bold text-[#1A0B2E] tracking-wide uppercase">Produk tidak ditemukan</h3></div>}
-              </section>
+                  </section>
+
+                  {/* KATALOG PRODUK */}
+                  <section id="katalog-produk">
+                    <div className="flex mb-6">
+                      <div className="flex gap-4 overflow-x-auto py-4 px-2 -mx-2 scrollbar-hide w-full items-center">
+                        {categories.map(cat => <button key={cat} onClick={() => setActiveCategory(cat)} className={`px-6 py-2.5 rounded-full text-xs font-bold tracking-wider uppercase whitespace-nowrap transition-all duration-300 flex-shrink-0 ${activeCategory === cat ? 'bg-gradient-to-r from-cyan-500 to-purple-600 text-white shadow-[0_4px_15px_rgba(168,85,247,0.3)] scale-105' : 'bg-white text-slate-500 border border-slate-200 hover:border-purple-400 hover:text-[#1A0B2E]'}`}>{cat}</button>)}
+                      </div>
+                    </div>
+
+                    {filteredProducts.length > 0 ? (
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-8">
+                        {filteredProducts.map((product) => (
+                          <div key={product.id} onClick={() => setSelectedProduct(product)} className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-[0_15px_40px_-10px_rgba(168,85,247,0.2)] hover:-translate-y-2 hover:border-purple-300 transition-all duration-500 group flex flex-col h-full relative cursor-pointer">
+                            <div className="relative aspect-[4/3] overflow-hidden bg-slate-50 p-6 flex items-center justify-center border-b border-slate-100">
+                              {product.badge && <span className="absolute top-4 left-4 bg-gradient-to-r from-cyan-400 to-purple-500 text-white text-[10px] font-bold px-3 py-1.5 rounded-full z-10 uppercase tracking-widest shadow-md">{product.badge}</span>}
+                              <img src={product.image} className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-700 ease-out drop-shadow-sm" />
+                              
+                              {/* Hover Overlay: Klik untuk detail */}
+                              <div className="absolute inset-0 bg-[#1A0B2E]/5 backdrop-blur-[1px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-10">
+                                 <span className="bg-white/90 text-[#1A0B2E] text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-full shadow-lg border border-slate-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300">Lihat Detail</span>
+                              </div>
+                            </div>
+                            <div className="p-5 sm:p-6 flex flex-col flex-grow bg-white z-20">
+                              <div className="text-[10px] text-purple-600 tracking-widest uppercase mb-2 font-bold bg-purple-50 inline-block px-2 py-1 rounded w-fit border border-purple-100">{product.brand}</div>
+                              <h3 className="font-semibold text-[13px] sm:text-[15px] text-[#1A0B2E] line-clamp-2 mb-4 group-hover:text-purple-600 transition-colors leading-relaxed">{product.name}</h3>
+                              <div className="mt-auto pt-4 border-t border-slate-50">
+                                <div className="flex items-center gap-2 mb-1"><span className="text-[10px] sm:text-xs text-slate-400 line-through">{formatRupiah(product.originalPrice)}</span></div>
+                                <div className="text-lg sm:text-xl font-black text-cyan-600 mb-4 tracking-tight group-hover:scale-105 origin-left transition-transform duration-300 drop-shadow-sm">{formatRupiah(product.price)}</div>
+                                {product.stock > 0 ? (
+                                  <button onClick={(e) => { e.stopPropagation(); handleWhatsAppClick(product); }} className="w-full py-3 px-4 bg-[#F7F5FA] text-[#1A0B2E] border border-purple-200/50 text-[10px] sm:text-xs font-bold uppercase tracking-widest rounded-xl group-hover:bg-[#1A0B2E] group-hover:text-white transition-all flex items-center justify-center gap-2"><i className="fab fa-whatsapp text-sm"></i> Tanya Stok</button>
+                                ) : (
+                                  <button disabled onClick={(e) => e.stopPropagation()} className="w-full py-3 px-4 bg-slate-100 text-slate-400 border border-slate-200/50 text-[10px] sm:text-xs font-bold uppercase tracking-widest rounded-xl flex items-center justify-center gap-2 cursor-not-allowed"><i className="fas fa-times-circle"></i> Stok Kosong</button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : <div className="text-center py-24 bg-white rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center"><div className="w-24 h-24 bg-purple-50 rounded-full flex items-center justify-center mb-6"><i className="fas fa-desktop text-4xl text-purple-300"></i></div><h3 className="text-xl font-bold text-[#1A0B2E] tracking-wide uppercase">Produk tidak ditemukan</h3></div>}
+                  </section>
+                </div>
+              )}
             </main>
 
-            {/* FOOTER MINIMALIS BARU */}
-            <footer className="bg-[#0D0518] text-slate-400 border-t border-purple-500/20 py-8 mt-20 relative overflow-hidden">
+            {/* FOOTER MINIMALIS */}
+            <footer className="bg-[#0D0518] text-slate-400 border-t border-purple-500/20 py-8 mt-12 relative overflow-hidden">
               <div className="absolute top-0 right-0 w-96 h-96 bg-purple-900/10 rounded-full blur-[100px] pointer-events-none"></div>
               <div className="absolute bottom-0 left-0 w-96 h-96 bg-cyan-900/10 rounded-full blur-[100px] pointer-events-none"></div>
               
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
-                
-                {/* Bagian Kiri: Logo & Slogan */}
                 <div className="flex flex-col items-center md:items-start gap-2">
                   <img src="https://drive.google.com/thumbnail?id=1WLxFwy421QxxzZ4vfwfozlWSUT1qMZgr&sz=w800" alt="SMART TECHNOLOGY MANDIRI" className="h-8 sm:h-10 object-contain drop-shadow-md brightness-0 invert opacity-90" onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/400x100/0D0518/ffffff?text=SMART+TECH'; }} />
                   <p className="text-[10px] sm:text-xs text-slate-500 font-light tracking-wide text-center md:text-left">
                     Mitra Teknologi Pintar & Terpercaya Anda.
                   </p>
                 </div>
-
-                {/* Bagian Tengah: Copyright */}
                 <p className="text-[10px] tracking-widest text-slate-600 font-bold uppercase order-3 md:order-2">
                   © 2026 Smart Technology Mandiri.
                 </p>
-
-                {/* Bagian Kanan: Social Media */}
                 <div className="flex gap-3 order-2 md:order-3">
                   {['FB', 'IG', 'TW', 'YT'].map(social => (
                     <div key={social} className="w-8 h-8 rounded-full bg-white/5 hover:bg-gradient-to-r hover:from-cyan-400 hover:to-purple-500 flex items-center justify-center text-slate-400 hover:text-white font-bold text-[10px] cursor-pointer transition-all duration-300 hover:-translate-y-1 shadow-sm">
@@ -1164,7 +971,6 @@ ATURAN PENTING:
                     </div>
                   ))}
                 </div>
-
               </div>
             </footer>
           </div>
